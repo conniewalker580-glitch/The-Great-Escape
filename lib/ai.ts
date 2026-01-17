@@ -9,7 +9,7 @@ const HF_API_URL = "https://api-inference.huggingface.co/models/mistralai/Mixtra
 async function hfGenerate(prompt: string) {
     const response = await fetch(HF_API_URL, {
         headers: {
-            Authorization: `Bearer ${process.env.HF_API_KEY}`,
+            Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
             "Content-Type": "application/json",
         },
         method: "POST",
@@ -63,7 +63,13 @@ export async function generateEscapeRoom(theme: string, difficulty: string, stat
         {
           "title": "Evocative Title",
           "description": "Atmospheric description.",
-          "imagePrompt": "Visual description for AI.",
+          "imagePrompt": "Primary atmosphere visual prompt.",
+          "multiverseScenes": [
+            "Front view description (main interaction area)",
+            "Left view description (cluttered corner/window)",
+            "Right view description (locked cabinet/machinery)",
+            "Back view description (entrance/security panel)"
+          ],
           "puzzles": [
             {
               "id": "gen_p1",
@@ -71,12 +77,13 @@ export async function generateEscapeRoom(theme: string, difficulty: string, stat
               "type": "code" | "choice",
               "options": ["A", "B"] (optional),
               "answer": "Exact string answer",
-              "hint": "Clue",
+              "hints": ["Clue 1", "Clue 2"],
+              "itemImagePrompt": "Close-up visual prompt for this specific puzzle object (e.g., 'A rusted brass keypad with glowing red numbers')",
               "solution_explanation": "Why logic"
             }
           ]
         }
-        Generate 3-4 puzzles based on logic above.
+        Generate 3-4 puzzles. Ensure the 'multiverseScenes' provide a full 360-degree sense of the environment.
     `;
 
     try {

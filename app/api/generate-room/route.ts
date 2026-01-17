@@ -8,12 +8,9 @@ export async function POST(req: NextRequest) {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const user = db.getUser(userId);
-
-    // Sync fallback
+    let user = db.getUser(userId);
     if (!user) {
-        db.createUser(userId, "unknown");
-        return NextResponse.json({ error: "User sync required. Please retry." }, { status: 500 });
+        user = db.createUser(userId);
     }
 
     // Tier Logic

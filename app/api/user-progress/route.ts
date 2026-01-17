@@ -10,11 +10,11 @@ export async function GET(req: NextRequest) {
     }
 
     const start = Date.now();
-    const user = db.getUser(userId);
+    let user = db.getUser(userId);
     const generatedRooms = db.getGeneratedRooms(userId);
 
     if (!user) {
-        return NextResponse.json({ error: "User not found" }, { status: 404 });
+        user = db.createUser(userId);
     }
 
     return NextResponse.json({ user, generatedRooms });

@@ -53,7 +53,7 @@ export const db = {
         const data = readDB();
         return data.users[userId] || null;
     },
-    createUser: (userId: string, email: string) => {
+    createUser: (userId: string) => {
         const data = readDB();
         if (!data.users[userId]) {
             data.users[userId] = {

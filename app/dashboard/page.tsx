@@ -15,6 +15,8 @@ export default function DashboardPage() {
     const router = useRouter();
     const [userData, setUserData] = useState<any>(null);
     const [generatedRooms, setGeneratedRooms] = useState<any[]>([]);
+    const [selectedTheme, setSelectedTheme] = useState("Space Horror");
+    const [selectedDifficulty, setSelectedDifficulty] = useState("Medium");
     const [isGenerating, setIsGenerating] = useState(false);
 
     useEffect(() => {
@@ -34,7 +36,7 @@ export default function DashboardPage() {
             const res = await fetch("/api/generate-room", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ theme: "Space Horror", difficulty: "Medium" })
+                body: JSON.stringify({ theme: selectedTheme, difficulty: selectedDifficulty })
             });
 
             if (!res.ok) {
@@ -101,12 +103,33 @@ export default function DashboardPage() {
                                     Use advanced AI to generate a completely unique escape room. Choose your theme, difficulty, and complexity. The possibilities are endless.
                                 </p>
                             </div>
-                            <div className="flex gap-4">
+                            <div className="flex flex-col gap-4 w-full md:w-auto">
+                                <div className="flex gap-2">
+                                    <select
+                                        value={selectedTheme}
+                                        onChange={(e) => setSelectedTheme(e.target.value)}
+                                        className="bg-purple-950/50 border border-purple-500/30 text-purple-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500 w-full"
+                                    >
+                                        <option value="Space Horror">Space Horror</option>
+                                        <option value="Cyberpunk Noir">Cyberpunk Noir</option>
+                                        <option value="Ancient Tomb">Ancient Tomb</option>
+                                        <option value="Digital Void">Digital Void</option>
+                                    </select>
+                                    <select
+                                        value={selectedDifficulty}
+                                        onChange={(e) => setSelectedDifficulty(e.target.value)}
+                                        className="bg-purple-950/50 border border-purple-500/30 text-purple-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500 w-full"
+                                    >
+                                        <option value="Easy">Easy</option>
+                                        <option value="Medium">Medium</option>
+                                        <option value="Hard">Hard</option>
+                                    </select>
+                                </div>
                                 <Button
                                     disabled={isGenerating}
                                     onClick={handleGenerateRoom}
                                     size="lg"
-                                    className="bg-purple-600 hover:bg-purple-500 text-white border border-purple-400/30 shadow-lg shadow-purple-900/20 gap-2 w-48"
+                                    className="bg-purple-600 hover:bg-purple-500 text-white border border-purple-400/30 shadow-lg shadow-purple-900/20 gap-2 w-full"
                                 >
                                     {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
                                     {isGenerating ? "Compiling..." : "Initialize"}
