@@ -58,8 +58,8 @@ export const db = {
         if (!data.users[userId]) {
             data.users[userId] = {
                 id: userId,
-                tier: 'free',
-                credits: 2,
+                tier: 'elite',
+                credits: 999,
                 generatedCount: 0,
                 unlockedRooms: ['room-1', 'room-2', 'room-3'],
                 completedHistory: []

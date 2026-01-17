@@ -114,12 +114,20 @@ export async function generateEscapeRoom(theme: string, difficulty: string, stat
             title: "Emergency Backup Protocol",
             description: "The AI signal was lost. You are in a static backup simulation.",
             imagePrompt: "Static glitch screen cyberpunk",
+            multiverseScenes: [
+                "Terminal screen with flickering green text",
+                "A tangle of wires and glowing capacitors",
+                "A cooling fan spinning slowly in the shadows",
+                "A reinforced titanium blast door"
+            ],
             puzzles: [{
                 id: "fallback",
                 question: "Enter authorization code 'RESET' to reboot.",
                 type: "code",
                 answer: "RESET",
-                hint: "It is exactly what it says."
+                hints: ["The code is literally RESET.", "Type R-E-S-E-T"],
+                itemImagePrompt: "A close-up of a shattered glass screen with the word RESET glowing behind it",
+                solution_explanation: "Authorization bypass"
             }]
         };
     }
