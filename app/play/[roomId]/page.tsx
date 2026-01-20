@@ -12,6 +12,7 @@ import confetti from "canvas-confetti";
 import { useUser } from "@clerk/nextjs";
 import { ACHIEVEMENT_BADGES, checkAchievement, calculateRank } from "@/lib/rewards";
 import { UpgradeModal } from "@/components/ui/upgrade-modal";
+import { PanoramicViewer } from "@/components/PanoramicViewer";
 
 export default function GamePage() {
     useUser();
@@ -22,7 +23,6 @@ export default function GamePage() {
     // Game State
     const [room, setRoom] = useState<Room | null>(null);
     const [currentPuzzleIndex, setCurrentPuzzleIndex] = useState(0);
-    const [currentSceneIndex, setCurrentSceneIndex] = useState(0); // 0: Front, 1: Left, 2: Right, 3: Back
     const [inputValue, setInputValue] = useState("");
     const [feedback, setFeedback] = useState<"success" | "error" | null>(null);
     const [gameState, setGameState] = useState<"loading" | "playing" | "completed" | "error">("loading");
@@ -68,16 +68,6 @@ export default function GamePage() {
         // Fallback to Pollinations AI
         return `https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=1280&height=720&seed=${roomId}&nologo=true`;
     };
-
-    const [imageLoaded, setImageLoaded] = useState(false);
-    useEffect(() => {
-        startTransition(() => {
-            setImageLoaded(false);
-        });
-    }, [currentSceneIndex, currentPuzzleIndex]);
-
-    const nextScene = () => setCurrentSceneIndex(prev => (prev + 1) % 4);
-    const prevScene = () => setCurrentSceneIndex(prev => (prev - 1 + 4) % 4);
 
     // Reset puzzle-specific state when moving to next puzzle
     useEffect(() => {
@@ -151,10 +141,6 @@ export default function GamePage() {
     }
 
     const currentPuzzle = room.puzzles[currentPuzzleIndex];
-    const scenes = (room.multiverseScenes && room.multiverseScenes.length === 4)
-        ? room.multiverseScenes
-        : [room.imagePrompt, room.imagePrompt, room.imagePrompt, room.imagePrompt];
-    const currentScenePrompt = scenes[currentSceneIndex];
 
     const validateAnswer = (input: string) => {
         // Enhanced normalization for better answer matching
@@ -371,7 +357,7 @@ export default function GamePage() {
             <div
                 className="absolute inset-0 opacity-40 blur-3xl scale-110 pointer-events-none transition-all duration-1000"
                 style={{
-                    backgroundImage: `url(${getImageUrl(currentScenePrompt, 'scene', currentSceneIndex)})`,
+                    backgroundImage: `url(${getImageUrl(room.imagePrompt, 'scene', 0)})`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
                     minHeight: '100vh',
@@ -443,87 +429,28 @@ export default function GamePage() {
                     {/* Visual Scene / 360 Walkthrough */}
                     <motion.div key={`${currentPuzzle.id}-scene`} className="flex-1 flex flex-col relative group min-h-[400px]">
                         <div className="relative flex-1 rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-zinc-900 min-h-[300px]">
-                            <AnimatePresence mode="wait">
-                                <motion.img
-                                    key={currentSceneIndex}
-                                    initial={{ opacity: 0, x: 20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -20 }}
-                                    transition={{ duration: 0.5 }}
-                                    src={getImageUrl(currentScenePrompt, 'scene', currentSceneIndex)}
-                                    alt={`Room Scene: ${currentScenePrompt}`}
-                                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-                                    onLoad={() => setImageLoaded(true)}
-                                    onError={(e) => {
-                                        // Fallback if local image fails
-                                        const target = e.target as HTMLImageElement;
-                                        if (!target.src.includes('pollinations.ai')) {
-                                            target.src = `https://pollinations.ai/p/${encodeURIComponent(currentScenePrompt)}?width=1280&height=720&seed=${roomId}&nologo=true`;
-                                        }
-                                    }}
-                                />
-                                {!imageLoaded && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
-                                        <Loader2 className="w-10 h-10 text-cyan-500 animate-spin" />
-                                    </div>
-                                )}
-                            </AnimatePresence>
+                            {/* 360 Panoramic Viewer Integration */}
+                            <PanoramicViewer
+                                imageUrl={`https://pollinations.ai/p/${encodeURIComponent(room.panoramicImage || room.imagePrompt + ", 360 degree equirectangular spherical panorama, high detailed 8k")}?width=2048&height=1024&seed=${roomId}&nologo=true&model=flux`}
+                                hotspots={room.hotspots ? Object.entries(room.hotspots).flatMap(([idx, hotspots]) => {
+                                    // Map 4-wall scenes to 360 angles: Front(0)=0, Left(1)=270, Right(2)=90, Back(3)=180
+                                    const baseAngle = [0, 270, 90, 180][parseInt(idx)] || 0;
+                                    return hotspots.map(hs => ({
+                                        id: hs.id,
+                                        angle: (baseAngle + (hs.x - 50) * 0.8 + 360) % 360, // Map X% to angle offset
+                                        elevation: (50 - hs.y) * 0.6, // Map Y% to elevation
+                                        label: hs.label,
+                                        onClick: () => handleHotspotInteraction(hs),
+                                        isSubtle: hs.isSubtle,
+                                        isDiscovered: discoveredHotspots.has(hs.id)
+                                    }));
+                                }) : []}
+                                effects={room.atmosphereEffects}
+                            />
 
-                            {/* Hotspots Layer */}
-                            <div className="absolute inset-0 z-20 pointer-events-none">
-                                {room.hotspots?.[currentSceneIndex]?.map((hs) => {
-                                    const isDiscovered = discoveredHotspots.has(hs.id);
-                                    const isCollected = hotspotStates[hs.id] === 'collected';
-                                    const isSubtle = hs.isSubtle !== false;
-                                    if (isCollected) return null;
-                                    return (
-                                        <motion.button
-                                            key={hs.id}
-                                            initial={{ scale: 0, opacity: 0 }}
-                                            animate={{ scale: 1, opacity: isSubtle && !isDiscovered ? 0.3 : 1 }}
-                                            whileHover={{ scale: 1.2, opacity: 1 }}
-                                            onClick={() => handleHotspotInteraction(hs)}
-                                            className="absolute w-8 h-8 -ml-4 -mt-4 flex items-center justify-center pointer-events-auto group/hs"
-                                            style={{ left: `${hs.x}%`, top: `${hs.y}%` }}
-                                        >
-                                            {(!isSubtle || isDiscovered) && (
-                                                <div className="absolute inset-0 bg-cyan-500/30 rounded-full animate-ping" />
-                                            )}
-                                            <div className={`relative w-3 h-3 rounded-full border-2 border-white shadow-[0_0_10px_rgba(6,182,212,0.8)] ${isSubtle && !isDiscovered ? 'bg-white/20' : 'bg-cyan-400'
-                                                }`} />
-
-                                            {/* Tooltip on Hover */}
-                                            <div className="absolute bottom-full mb-2 bg-black/80 backdrop-blur-md px-2 py-1 rounded text-[10px] text-cyan-100 whitespace-nowrap opacity-0 group-hover/hs:opacity-100 transition-opacity border border-white/10 uppercase tracking-widest pointer-events-none">
-                                                {hs.interactionType}: {hs.label}
-                                            </div>
-                                        </motion.button>
-                                    );
-                                })}
-                            </div>
-
-                            {/* Scene HUD */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
-
-                            {/* Navigation Arrows */}
-                            <button onClick={prevScene} className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-full hover:bg-cyan-500/20 hover:text-cyan-400 transition-all opacity-0 group-hover:opacity-100 z-20">
-                                <ArrowRight className="w-6 h-6 rotate-180" />
-                            </button>
-                            <button onClick={nextScene} className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-full hover:bg-cyan-500/20 hover:text-cyan-400 transition-all opacity-0 group-hover:opacity-100 z-20">
-                                <ArrowRight className="w-6 h-6" />
-                            </button>
-
-                            <div className="absolute bottom-6 left-6 right-6">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="flex gap-1">
-                                        {[0, 1, 2, 3].map(i => (
-                                            <div key={i} className={`h-1 w-8 rounded-full transition-all ${i === currentSceneIndex ? 'bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]' : 'bg-white/20'}`} />
-                                        ))}
-                                    </div>
-                                    <span className="text-[10px] font-mono text-cyan-400/60 uppercase tracking-widest">
-                                        {["Front", "Left", "Right", "Back"][currentSceneIndex]} Perspective
-                                    </span>
-                                </div>
-                                <p className="text-white/90 text-sm font-light leading-relaxed max-w-2xl italic">
+                            {/* Overlay Controls */}
+                            <div className="absolute bottom-6 left-6 right-6 pointer-events-none">
+                                <p className="text-white/90 text-sm font-light leading-relaxed max-w-2xl italic drop-shadow-md">
                                     {room.description}
                                 </p>
                             </div>
