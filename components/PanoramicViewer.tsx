@@ -135,6 +135,8 @@ export function PanoramicViewer({ imageUrl, hotspots = [], effects }: PanoramicV
         );
     };
 
+    const [imageLoaded, setImageLoaded] = useState(false);
+
     return (
         <div
             ref={containerRef}
@@ -149,15 +151,30 @@ export function PanoramicViewer({ imageUrl, hotspots = [], effects }: PanoramicV
             onTouchEnd={handleTouchEnd}
         >
             {/* Panoramic Image */}
-            <div
-                className="absolute inset-0 transition-transform duration-100"
-                style={{
-                    backgroundImage: `url(${imageUrl})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: `${(rotation / 360) * 100}% center`,
-                    backgroundRepeat: 'repeat-x',
-                }}
-            />
+            <div className="absolute inset-0 overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                    src={imageUrl}
+                    alt="360° Panoramic View"
+                    className="absolute h-full min-w-full object-cover transition-transform duration-100"
+                    style={{
+                        transform: `translateX(-${(rotation / 360) * 100}%)`,
+                        minWidth: '200%',
+                        objectPosition: 'center',
+                    }}
+                    onLoad={() => setImageLoaded(true)}
+                    onError={(e) => {
+                        console.error('Failed to load panoramic image:', imageUrl);
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                    }}
+                />
+                {!imageLoaded && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
+                        <div className="text-cyan-500 text-sm font-mono animate-pulse">Loading panoramic view...</div>
+                    </div>
+                )}
+            </div>
 
             {/* Atmosphere Overlays */}
             {effects?.lighting === 'flickering' && (
