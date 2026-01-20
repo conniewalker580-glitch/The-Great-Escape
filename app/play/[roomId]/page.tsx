@@ -434,20 +434,123 @@ export default function GamePage() {
                     </Card>
                 </motion.div>
             ) : (
-                <div className="flex flex-col md:flex-row gap-8 w-full max-w-7xl z-10 mt-12 h-[80vh]">
-                    {/* Visual Scene / 360 Walkthrough */}
-                    <motion.div key={`${currentPuzzle.id}-scene`} className="flex-1 flex flex-col relative group min-h-[400px]">
-                        <div className="relative flex-1 rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-zinc-900 min-h-[300px]">
-                            {/* 360 Panoramic Viewer Integration */}
+                <div className="flex flex-col w-full max-w-7xl z-10 mt-12 gap-6">
+                    {/* CRITICAL: Question UI - Always Visible at Top */}
+                    <Card className="bg-black/80 backdrop-blur-xl border-cyan-500/30 shadow-2xl">
+                        <CardHeader className="border-b border-cyan-500/20 pb-4">
+                            <CardTitle className="flex items-center justify-between">
+                                <span className="text-cyan-400 text-lg uppercase tracking-wider">Puzzle #{currentPuzzleIndex + 1}</span>
+                                <span className="text-xs text-zinc-500 font-mono">{room.title}</span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-6 pb-4">
+                            <p className="text-xl text-white font-medium leading-relaxed mb-6">
+                                {currentPuzzle.question}
+                            </p>
+
+                            {/* CRITICAL: Answer Options - Always Visible */}
+                            {currentPuzzle.type === 'choice' && currentPuzzle.options ? (
+                                <div className="grid gap-3">
+                                    {currentPuzzle.options.map((opt, idx) => (
+                                        <Button
+                                            key={opt}
+                                            variant="outline"
+                                            className="justify-start h-auto py-4 px-6 text-left text-base border-zinc-700 hover:border-cyan-500 hover:bg-cyan-950/30 hover:text-cyan-400 transition-all"
+                                            onClick={() => { setInputValue(opt); setTimeout(handleInputSubmit, 100); }}
+                                        >
+                                            <div className="w-8 h-8 rounded-full border-2 border-zinc-600 mr-4 flex items-center justify-center text-sm font-bold text-zinc-500 group-hover:border-cyan-500 group-hover:text-cyan-400">
+                                                {String.fromCharCode(65 + idx)}
+                                            </div>
+                                            <span className="flex-1">{opt}</span>
+                                        </Button>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <input
+                                        autoFocus
+                                        className="w-full bg-zinc-900 border-2 border-zinc-700 rounded-lg p-4 text-lg focus:border-cyan-500 focus:outline-none text-white font-mono"
+                                        placeholder="Type your answer..."
+                                        value={inputValue}
+                                        onChange={(e) => setInputValue(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleInputSubmit()}
+                                    />
+                                    <Button
+                                        className="w-full bg-cyan-600 hover:bg-cyan-500 text-black font-bold h-14 text-lg"
+                                        onClick={handleInputSubmit}
+                                    >
+                                        Submit Answer
+                                    </Button>
+                                </div>
+                            )}
+
+                            {/* Feedback Messages */}
+                            {feedback === 'success' && (
+                                <div className="mt-4 p-4 bg-green-950/30 border border-green-500/30 rounded-lg flex items-center gap-3 text-green-400">
+                                    <CheckCircle className="w-5 h-5" />
+                                    <span className="font-medium">Correct! Moving to next puzzle...</span>
+                                </div>
+                            )}
+                            {feedback === 'error' && (
+                                <div className="mt-4 p-4 bg-red-950/30 border border-red-500/30 rounded-lg flex items-center gap-3 text-red-400">
+                                    <AlertCircle className="w-5 h-5" />
+                                    <span className="font-medium">Incorrect. Try again.</span>
+                                </div>
+                            )}
+
+                            {/* Hints Section */}
+                            <AnimatePresence>
+                                {visibleHints.length > 0 && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        className="space-y-2 mt-6 border-t border-white/10 pt-4"
+                                    >
+                                        {visibleHints.map((hint, idx) => (
+                                            <motion.div
+                                                key={idx}
+                                                initial={{ x: -10, opacity: 0 }}
+                                                animate={{ x: 0, opacity: 1 }}
+                                                transition={{ delay: idx * 0.1 }}
+                                                className="flex gap-3 text-sm text-purple-300 bg-purple-950/20 p-4 rounded-lg border border-purple-500/20"
+                                            >
+                                                <HelpCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                                                <p>{hint}</p>
+                                            </motion.div>
+                                        ))}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </CardContent>
+                        <CardFooter className="border-t border-white/10 p-4 flex justify-between items-center">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={requestHint}
+                                disabled={loadingHint}
+                                className="text-zinc-500 hover:text-purple-400"
+                            >
+                                {loadingHint ? <Loader2 className="w-4 h-4 animate-spin" /> : <HelpCircle className="w-4 h-4" />}
+                                <span className="ml-2">Request Hint ({hintsUsed} used)</span>
+                            </Button>
+                            <div className="text-xs text-zinc-500 font-mono">
+                                Time: {formatTime(elapsed)}
+                            </div>
+                        </CardFooter>
+                    </Card>
+
+                    {/* OPTIONAL: Visual Scene - Non-blocking */}
+                    <div className="grid md:grid-cols-2 gap-6">
+                        {/* 360° Panoramic Viewer */}
+                        <motion.div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-zinc-900 min-h-[400px]">
                             <PanoramicViewer
                                 imageUrl={`https://pollinations.ai/p/${encodeURIComponent(room.panoramicImage || room.imagePrompt + ", 360 degree equirectangular spherical panorama, high detailed 8k")}?width=2048&height=1024&seed=${roomId}&nologo=true&model=flux`}
                                 hotspots={room.hotspots ? Object.entries(room.hotspots).flatMap(([idx, hotspots]) => {
-                                    // Map 4-wall scenes to 360 angles: Front(0)=0, Left(1)=270, Right(2)=90, Back(3)=180
                                     const baseAngle = [0, 270, 90, 180][parseInt(idx)] || 0;
                                     return hotspots.map(hs => ({
                                         id: hs.id,
-                                        angle: (baseAngle + (hs.x - 50) * 0.8 + 360) % 360, // Map X% to angle offset
-                                        elevation: (50 - hs.y) * 0.6, // Map Y% to elevation
+                                        angle: (baseAngle + (hs.x - 50) * 0.8 + 360) % 360,
+                                        elevation: (50 - hs.y) * 0.6,
                                         label: hs.label,
                                         onClick: () => handleHotspotInteraction(hs),
                                         isSubtle: hs.isSubtle,
@@ -456,104 +559,28 @@ export default function GamePage() {
                                 }) : []}
                                 effects={room.atmosphereEffects}
                             />
-
-                            {/* Overlay Controls */}
-                            <div className="absolute bottom-6 left-6 right-6 pointer-events-none">
-                                <p className="text-white/90 text-sm font-light leading-relaxed max-w-2xl italic drop-shadow-md">
+                            <div className="absolute bottom-4 left-4 right-4 pointer-events-none">
+                                <p className="text-white/80 text-xs italic drop-shadow-md">
                                     {room.description}
                                 </p>
                             </div>
-                        </div>
+                        </motion.div>
 
-                        {/* Puzzle Item Close-up */}
-                        <div className="mt-4 flex gap-4">
-                            <Card className="flex-1 bg-zinc-900/50 border-white/5 backdrop-blur-md">
-                                <CardHeader className="py-3 px-4"><CardTitle className="text-[10px] uppercase text-zinc-500 tracking-widest flex justify-between">
-                                    <span>Puzzle Data</span>
-                                    <span>#{currentPuzzleIndex + 1}</span>
-                                </CardTitle></CardHeader>
-                                <CardContent className="py-2 px-4">
-                                    <p className="text-base text-cyan-50 font-medium">{currentPuzzle.question}</p>
-                                </CardContent>
-                            </Card>
-                            {currentPuzzle.itemImagePrompt && (
-                                <div className="w-32 aspect-square rounded-xl overflow-hidden border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)] cursor-zoom-in hover:scale-105 transition-transform bg-zinc-900 shrink-0">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img
-                                        src={getImageUrl(currentPuzzle.itemImagePrompt, 'item', currentPuzzleIndex)}
-                                        alt="Target Item"
-                                        className="w-full h-full object-cover"
-                                    />
+                        {/* Puzzle Item Visual */}
+                        {currentPuzzle.itemImagePrompt && (
+                            <div className="relative rounded-2xl overflow-hidden border border-cyan-500/30 shadow-2xl bg-zinc-900 min-h-[400px] flex items-center justify-center">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                    src={getImageUrl(currentPuzzle.itemImagePrompt, 'item', currentPuzzleIndex)}
+                                    alt="Puzzle Item"
+                                    className="w-full h-full object-contain p-8"
+                                />
+                                <div className="absolute top-4 left-4 bg-black/80 backdrop-blur-sm px-3 py-1 rounded-full border border-cyan-500/30">
+                                    <span className="text-xs text-cyan-400 font-mono uppercase">Evidence</span>
                                 </div>
-                            )}
-                        </div>
-                    </motion.div>
-
-                    {/* Interaction */}
-                    <motion.div key={`${currentPuzzle.id}-input`} className="w-full md:w-[400px] h-full flex flex-col">
-                        <Card className="bg-black/60 backdrop-blur-xl border-cyan-500/20 flex-1 flex flex-col shadow-2xl overflow-hidden">
-                            <CardHeader className="border-b border-white/5">
-                                <CardTitle className="flex justify-between">
-                                    <span className="text-cyan-400 text-sm uppercase tracking-wider">Interface</span>
-                                    {feedback === 'success' && <span className="text-green-400 text-xs flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Correct</span>}
-                                    {feedback === 'error' && <span className="text-red-400 text-xs flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Invalid</span>}
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="flex-1 overflow-y-auto custom-scrollbar p-6">
-                                {currentPuzzle.type === 'choice' ? (
-                                    <div className="grid gap-3 mb-6">
-                                        {currentPuzzle.options?.map(opt => (
-                                            <Button
-                                                key={opt} variant="outline"
-                                                className="justify-start h-auto py-4 text-left border-zinc-700 hover:border-cyan-500 hover:bg-cyan-950/30 hover:text-cyan-400"
-                                                onClick={() => { setInputValue(opt); setTimeout(handleInputSubmit, 100); }}
-                                            >
-                                                <div className="w-6 h-6 rounded-full border border-zinc-600 mr-3 flex items-center justify-center text-[10px] text-zinc-500 group-hover:border-cyan-500"></div>
-                                                {opt}
-                                            </Button>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="space-y-4 mb-6">
-                                        <input
-                                            autoFocus
-                                            className="w-full bg-zinc-900 border border-zinc-700 rounded p-4 text-lg focus:border-cyan-500 focus:outline-none text-white font-mono"
-                                            placeholder="Type answer..."
-                                            value={inputValue}
-                                            onChange={(e) => setInputValue(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && handleInputSubmit()}
-                                        />
-                                        <Button className="w-full bg-cyan-600 hover:bg-cyan-500 text-black font-bold h-12" onClick={handleInputSubmit}>Submit Answer</Button>
-                                    </div>
-                                )}
-
-                                <AnimatePresence>
-                                    {visibleHints.length > 0 && (
-                                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-2 mt-4 border-t border-white/5 pt-4">
-                                            {visibleHints.map((hint, idx) => (
-                                                <motion.div key={idx} initial={{ x: -10, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: idx * 0.1 }} className="flex gap-2 text-xs text-purple-300 bg-purple-950/20 p-3 rounded border border-purple-500/20 shadow-[0_0_10px_rgba(168,85,247,0.1)]">
-                                                    <HelpCircle className="w-3 h-3 mt-0.5 shrink-0" />
-                                                    <p>{hint}</p>
-                                                </motion.div>
-                                            ))}
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </CardContent>
-                            <CardFooter className="border-t border-white/5 p-4">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={requestHint}
-                                    disabled={loadingHint}
-                                    className="w-full text-zinc-500 hover:text-purple-400"
-                                >
-                                    {loadingHint ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <HelpCircle className="w-4 h-4 mr-2" />}
-                                    {loadingHint ? "Analyzing Pattern..." : (visibleHints.length === 0 ? "Request Hint" : "Next Hint")}
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                    </motion.div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -622,6 +649,6 @@ export default function GamePage() {
                 tier={usageLimitInfo.tier}
                 limit={usageLimitInfo.limit}
             />
-        </div>
+        </div >
     );
 }
