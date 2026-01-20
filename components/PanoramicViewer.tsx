@@ -136,11 +136,12 @@ export function PanoramicViewer({ imageUrl, hotspots = [], effects }: PanoramicV
     };
 
     const [imageLoaded, setImageLoaded] = useState(false);
+    const [imageError, setImageError] = useState(false);
 
     return (
         <div
             ref={containerRef}
-            className={`relative w-full h-full overflow-hidden cursor-grab active:cursor-grabbing select-none ${effects?.lighting === 'dim' ? 'brightness-75 contrast-125' : ''
+            className={`relative w-full h-full overflow-hidden cursor-grab active:cursor-grabbing select-none bg-zinc-900 ${effects?.lighting === 'dim' ? 'brightness-75 contrast-125' : ''
                 }`}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
@@ -149,29 +150,50 @@ export function PanoramicViewer({ imageUrl, hotspots = [], effects }: PanoramicV
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
+            style={{ minHeight: '400px' }}
         >
             {/* Panoramic Image */}
-            <div className="absolute inset-0 overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                    src={imageUrl}
-                    alt="360° Panoramic View"
-                    className="absolute h-full min-w-full object-cover transition-transform duration-100"
-                    style={{
-                        transform: `translateX(-${(rotation / 360) * 100}%)`,
-                        minWidth: '200%',
-                        objectPosition: 'center',
-                    }}
-                    onLoad={() => setImageLoaded(true)}
-                    onError={(e) => {
-                        console.error('Failed to load panoramic image:', imageUrl);
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                    }}
-                />
-                {!imageLoaded && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
-                        <div className="text-cyan-500 text-sm font-mono animate-pulse">Loading panoramic view...</div>
+            <div className="absolute inset-0 overflow-hidden bg-gradient-to-b from-zinc-800 to-zinc-900">
+                {!imageError && (
+                    <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            src={imageUrl}
+                            alt="360° Panoramic View"
+                            className={`absolute h-full min-w-full object-cover transition-all duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                            style={{
+                                transform: `translateX(-${(rotation / 360) * 50}%)`,
+                                minWidth: '200%',
+                                objectPosition: 'center',
+                            }}
+                            onLoad={() => {
+                                setImageLoaded(true);
+                                setImageError(false);
+                            }}
+                            onError={(e) => {
+                                console.error('Failed to load panoramic image:', imageUrl);
+                                setImageError(true);
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                            }}
+                        />
+                    </>
+                )}
+
+                {/* Loading/Error State */}
+                {(!imageLoaded || imageError) && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900/95 backdrop-blur-sm">
+                        {!imageError ? (
+                            <>
+                                <div className="w-16 h-16 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin mb-4"></div>
+                                <div className="text-cyan-400 text-sm font-mono animate-pulse">Loading immersive environment...</div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="text-amber-400 text-sm font-mono mb-2">⚠ Visual loading delayed</div>
+                                <div className="text-zinc-500 text-xs">AI-generated visuals may take a moment</div>
+                            </>
+                        )}
                     </div>
                 )}
             </div>
