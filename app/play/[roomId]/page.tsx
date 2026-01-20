@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { ROOMS, Room, Hotspot, InteractionState } from "@/lib/game-data";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, CheckCircle, HelpCircle, Timer, ArrowRight, Home, Loader2, Star, Lock } from "lucide-react";
+import { AlertCircle, CheckCircle, HelpCircle, Timer, ArrowRight, Home, Loader2, Star, Lock, Eye, ZoomIn } from "lucide-react";
 import confetti from "canvas-confetti";
 import { useUser } from "@clerk/nextjs";
 import { ACHIEVEMENT_BADGES, checkAchievement, calculateRank } from "@/lib/rewards";
@@ -28,10 +29,10 @@ export default function GamePage() {
     const [gameState, setGameState] = useState<"loading" | "playing" | "completed" | "error">("loading");
     const [selectedHotspot, setSelectedHotspot] = useState<Hotspot | null>(null);
     const [inventory, setInventory] = useState<string[]>([]); // Collected item IDs
-    const [hotspotStates, setHotspotStates] = useState<Record<string, InteractionState>>({}); // Track interaction state per hotspot
-    const [discoveredHotspots, setDiscoveredHotspots] = useState<Set<string>>(new Set()); // Hotspots user has found
+    const [hotspotStates, setHotspotStates] = useState<Record<string, InteractionState>>({});
+    const [discoveredHotspots, setDiscoveredHotspots] = useState<Set<string>>(new Set());
 
-    // Performance Tracking
+    // Performance & Hints
     const [hintsUsed, setHintsUsed] = useState(0);
     const [hintIndex, setHintIndex] = useState(-1);
     const [visibleHints, setVisibleHints] = useState<string[]>([]);
@@ -49,34 +50,45 @@ export default function GamePage() {
         });
     }, []);
 
+    // -------------------------------------------------------------------------
+    // 🎨 IMAGE GENERATION SYSTEM (Production Robust)
+    // -------------------------------------------------------------------------
     const getImageUrl = (prompt: string, type: 'scene' | 'hotspot' | 'item' | 'panorama' = 'scene', index?: number) => {
-        // Always use AI-generated images for consistent, high-quality visuals
-        // This ensures all rooms have proper visuals in both development and production
+        const baseUrl = "https://pollinations.ai/p/";
+        const params = new URLSearchParams({
+            nologo: 'true',
+            model: 'flux',
+        });
+
+        // Use consistent seeds based on room and asset IDs to ensure the same image 
+        // generates every time for the same room (caching behavior).
+        const seedBase = `${roomId}`;
 
         if (type === 'panorama') {
-            // Generate 360° equirectangular panorama
-            const panoramaPrompt = prompt || `${room?.imagePrompt || 'escape room'}, 360 degree equirectangular spherical panorama, high detailed 8k`;
-            return `https://pollinations.ai/p/${encodeURIComponent(panoramaPrompt)}?width=2048&height=1024&seed=${roomId}&nologo=true&model=flux`;
-        }
-
-        if (type === 'scene') {
-            // Generate scene view
-            return `https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=1280&height=720&seed=${roomId}-${index || 0}&nologo=true&model=flux`;
+            params.append('width', '2048');
+            params.append('height', '1024');
+            params.append('seed', `${seedBase}_pano`);
+            const p = prompt || `${room?.imagePrompt || 'escape room'}, 360 degree equirectangular spherical panorama, high detailed 8k`;
+            return `${baseUrl}${encodeURIComponent(p)}?${params.toString()}`;
         }
 
         if (type === 'item') {
-            // Generate puzzle item close-up
-            return `https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=800&height=800&seed=${roomId}-item-${index || 0}&nologo=true&model=flux`;
+            params.append('width', '800');
+            params.append('height', '800');
+            params.append('seed', `${seedBase}_item_${index || 0}`);
+            return `${baseUrl}${encodeURIComponent(prompt)}?${params.toString()}`;
         }
 
-        if (type === 'hotspot') {
-            // Generate hotspot/interactive object image
-            return `https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=1280&height=720&seed=${roomId}-hotspot-${index || 0}&nologo=true&model=flux`;
-        }
-
-        // Default fallback
-        return `https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=1280&height=720&seed=${roomId}&nologo=true&model=flux`;
+        // Hotspots (16:9)
+        params.append('width', '1280');
+        params.append('height', '720');
+        params.append('seed', `${seedBase}_${type}_${index || 0}`);
+        return `${baseUrl}${encodeURIComponent(prompt)}?${params.toString()}`;
     };
+
+    // -------------------------------------------------------------------------
+    // 🧩 GAME LOGIC & STATE MANAGEMENT
+    // -------------------------------------------------------------------------
 
     // Reset puzzle-specific state when moving to next puzzle
     useEffect(() => {
@@ -89,9 +101,10 @@ export default function GamePage() {
         });
     }, [currentPuzzleIndex]);
 
-    // Load Room Logic
+    // Load Room Data
     useEffect(() => {
         const loadRoom = async () => {
+            // 1. Try Local Static Data
             const foundRoom = ROOMS.find((r) => r.id === roomId);
             if (foundRoom) {
                 setRoom(foundRoom);
@@ -99,6 +112,7 @@ export default function GamePage() {
                 return;
             }
 
+            // 2. Try Generated/User Data
             try {
                 const res = await fetch("/api/user-progress");
                 if (res.ok) {
@@ -120,7 +134,7 @@ export default function GamePage() {
         if (roomId) loadRoom();
     }, [roomId]);
 
-    // Timer Logic
+    // Timer Interval
     useEffect(() => {
         if (gameState !== "playing") return;
         const interval = setInterval(() => {
@@ -135,40 +149,18 @@ export default function GamePage() {
         return `${m}:${s < 10 ? '0' : ''}${s}`;
     };
 
-    if (gameState === 'error') {
-        return (
-            <div className="min-h-screen bg-black flex flex-col items-center justify-center text-red-500 gap-4">
-                <AlertCircle className="w-12 h-12" />
-                <p className="text-xl font-bold">Simulation Desync: Sector Not Found</p>
-                <Button onClick={() => router.push('/dashboard')} variant="outline" className="border-red-500/50 text-red-400">Return to Dashboard</Button>
-            </div>
-        );
-    }
-
-    if (!room || gameState === 'loading') {
-        return <div className="min-h-screen bg-black flex items-center justify-center text-cyan-500 font-mono animate-pulse uppercase tracking-widest">Initializing Environment...</div>;
-    }
-
-    const currentPuzzle = room.puzzles[currentPuzzleIndex];
-
+    // Answer Validation
     const validateAnswer = (input: string) => {
-        // Enhanced normalization for better answer matching
-        const normalize = (s: string) => {
-            return s?.toLowerCase()
-                .trim()
-                .replace(/[^a-z0-9.\-]/g, '') // Keep dots and dashes for morse/special codes
-                || "";
-        };
+        if (!currentPuzzle) return false;
 
+        const normalize = (s: string) => s?.toLowerCase().trim().replace(/[^a-z0-9.\-]/g, '') || "";
         const target = Array.isArray(currentPuzzle.answer) ? currentPuzzle.answer : [currentPuzzle.answer];
         const normalizedInput = normalize(input);
 
-        // Check exact normalized match
-        if (target.some(ans => normalize(ans) === normalizedInput)) {
-            return true;
-        }
+        // Match?
+        if (target.some(ans => normalize(ans) === normalizedInput)) return true;
 
-        // For numeric answers, also check if they're mathematically equal
+        // Numeric approximation?
         const inputNum = parseFloat(input);
         if (!isNaN(inputNum)) {
             return target.some(ans => {
@@ -176,472 +168,396 @@ export default function GamePage() {
                 return !isNaN(ansNum) && Math.abs(inputNum - ansNum) < 0.001;
             });
         }
-
         return false;
     };
 
-    const handleInputSubmit = async () => {
+    // Submission Handler
+    const handleInputSubmit = async (valOverride?: string) => {
         if (!room) return;
+        const answerToCheck = valOverride !== undefined ? valOverride : inputValue;
 
-        if (validateAnswer(inputValue)) {
+        if (validateAnswer(answerToCheck)) {
             setFeedback("success");
 
-            // Celebration
+            // 🎉 Success Effects
             confetti({
-                particleCount: 100,
-                spread: 70,
+                particleCount: 150,
+                spread: 80,
                 origin: { y: 0.6 },
-                colors: ['#06b6d4', '#a855f7', '#10b981']
+                colors: ['#06b6d4', '#a855f7', '#ffffff']
             });
 
+            // Is Game Over?
             const isLastPuzzle = currentPuzzleIndex === room.puzzles.length - 1;
 
             if (isLastPuzzle) {
                 const timeSeconds = Math.floor((Date.now() - startTime) / 1000);
-                const rank = calculateRank(hintsUsed, timeSeconds, 600); // 10 min target
-
+                const rank = calculateRank(hintsUsed, timeSeconds, 600);
                 setGameState("completed");
 
-                // Update Rewards and Achievements locally
-                const storedStats = localStorage.getItem('player_stats');
-                const playerStats = storedStats ? JSON.parse(storedStats) : {
-                    roomsCompleted: 0,
-                    perfectScores: 0,
-                    speedRuns: 0,
-                    noHintRuns: 0,
-                    dailyStreak: 1
-                };
-
-                playerStats.roomsCompleted += 1;
-                if (rank === 'S') playerStats.perfectScores += 1;
-                if (timeSeconds < 180) playerStats.speedRuns += 1;
-                if (hintsUsed === 0) playerStats.noHintRuns += 1;
-
-                const currentAchievements = JSON.parse(localStorage.getItem('achievements') || '[]');
-                const newAchievements: string[] = [];
-
-                ACHIEVEMENT_BADGES.forEach(badge => {
-                    if (!currentAchievements.includes(badge.id)) {
-                        if (checkAchievement(badge, playerStats)) {
-                            newAchievements.push(badge.id);
-                        }
-                    }
-                });
-
-                localStorage.setItem('player_stats', JSON.stringify(playerStats));
-                localStorage.setItem('achievements', JSON.stringify([...currentAchievements, ...newAchievements]));
-
-                // Track progress and usage
+                // --- SAVE PROGRESS (Simplified) ---
                 try {
-                    // Update user progress (stars, rank)
-                    const stars = rank === 'S' ? 3 : (rank === 'A' ? 2 : 1);
                     await fetch("/api/user-progress", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            roomId: room.id,
-                            stars,
-                            timeSeconds,
-                            rank
-                        })
+                        body: JSON.stringify({ roomId: room.id, stars: rank === 'S' ? 3 : 2, timeSeconds, rank })
                     });
 
-                    // Track room usage for subscription limits
+                    // Track usage limit
                     const trackRes = await fetch("/api/play/track", {
                         method: "POST",
-                        headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ roomId: room.id })
                     });
-
                     if (trackRes.status === 403) {
                         const data = await trackRes.json();
                         setUsageLimitInfo({ tier: data.tier, limit: data.limit });
                         setShowUpgradeModal(true);
                     }
-                } catch (e) {
-                    console.error("Failed to sync progress or track usage", e);
-                }
+                } catch (e) { console.error("Save failed", e); }
 
             } else {
-                // Advance to next puzzle
+                // Next Puzzle
                 setTimeout(() => {
                     setCurrentPuzzleIndex(prev => prev + 1);
-                }, 1000);
+                }, 1500);
             }
         } else {
             setFeedback("error");
             setFailedAttempts(prev => prev + 1);
-            setTimeout(() => setFeedback(null), 1500);
+            setTimeout(() => setFeedback(null), 2000);
         }
     };
 
+    // Hotspot Logic
     const handleHotspotInteraction = (hotspot: Hotspot) => {
-        // Mark as discovered
         setDiscoveredHotspots(prev => new Set([...prev, hotspot.id]));
-
-        // Check if item is required
-        if (hotspot.requiresItem && !inventory.includes(hotspot.requiresItem)) {
-            setSelectedHotspot({
-                ...hotspot,
-                description: `This ${hotspot.label} appears to be locked or requires something to interact with it.`
-            });
-            return;
-        }
-
-        // Handle interaction based on type
-        const currentState = hotspotStates[hotspot.id] || 'idle';
-
-        if (hotspot.interactionType === 'pickup' && currentState !== 'collected') {
-            // Add to inventory
-            if (hotspot.revealsItem) {
-                setInventory(prev => [...prev, hotspot.revealsItem!]);
-            }
-            setHotspotStates(prev => ({ ...prev, [hotspot.id]: 'collected' }));
-        } else if (hotspot.interactionType === 'open' && currentState !== 'interacted') {
-            // Open the object and potentially reveal an item
-            setHotspotStates(prev => ({ ...prev, [hotspot.id]: 'interacted' }));
-            if (hotspot.revealsItem) {
-                setInventory(prev => [...prev, hotspot.revealsItem!]);
-            }
-        } else {
-            // Just mark as interacted for inspect/examine/reveal/rotate
-            setHotspotStates(prev => ({ ...prev, [hotspot.id]: 'interacted' }));
-        }
-
-        // Show the hotspot modal
         setSelectedHotspot(hotspot);
     };
 
+    // Helper to get current puzzle safely
+    const currentPuzzle = room?.puzzles?.[currentPuzzleIndex];
+
+    // Hint Logic
     const requestHint = async () => {
-        if (room.difficulty === "Easy") {
-            setVisibleHints(["This sector is rated EASY. No hints are required for this level of clearance."]);
-            return;
-        }
-
-        if (room.difficulty === "Medium" && failedAttempts === 0) {
-            setVisibleHints(["Hint protocols locked until at least one failure is recorded."]);
-            return;
-        }
-
-        if ((room.difficulty === "Hard" || room.difficulty === "Expert") && hintsUsed >= 1) {
-            setVisibleHints(prev => [...prev, "Critical limit reached. No further hints available for this difficulty level."]);
-            return;
-        }
-
+        if (!currentPuzzle) return;
         const roomHints = currentPuzzle.hints || [];
+
+        // Local Hints First
         if (hintIndex + 1 < roomHints.length) {
-            const nextHint = roomHints[hintIndex + 1];
-            setHintIndex(prev => prev + 1);
-            setVisibleHints(prev => [...prev, nextHint]);
+            setHintIndex(p => p + 1);
+            setVisibleHints(p => [...p, roomHints[hintIndex + 1]]);
             setHintsUsed(h => h + 1);
             return;
         }
 
+        // Then AI Hint
         setLoadingHint(true);
         try {
             const res = await fetch("/api/ai/hint", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ puzzle: currentPuzzle.question, attempts: [inputValue] })
             });
             const data = await res.json();
             if (data.hint) {
-                setVisibleHints(prev => [...prev, `AI ASSIST: ${data.hint}`]);
+                setVisibleHints(p => [...p, `AI: ${data.hint}`]);
                 setHintsUsed(h => h + 1);
-            } else {
-                setVisibleHints(prev => [...prev, "No further hints available for this pattern."]);
             }
-        } catch (e) {
-            console.error(e);
-            setVisibleHints(prev => [...prev, "Uplink failure. No additional hints possible."]);
+        } catch {
+            setVisibleHints(p => [...p, "System Offline. Try observing the room details."]);
         }
         setLoadingHint(false);
     };
 
-    return (
-        <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
-            <div className="absolute inset-0 bg-black" />
+    // -------------------------------------------------------------------------
+    // 🖥️ RENDERING
+    // -------------------------------------------------------------------------
 
-            {/* AMBIENT BACKGROUND (Blurred Scene) */}
-            <div
-                className="absolute inset-0 opacity-40 blur-3xl scale-110 pointer-events-none transition-all duration-1000"
-                style={{
-                    backgroundImage: `url(${getImageUrl(room.imagePrompt, 'scene', 0)})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    minHeight: '100vh',
-                    minWidth: '100vw'
-                }}
-            />
+    if (gameState === 'error') {
+        return (
+            <div className="min-h-screen bg-black flex flex-col items-center justify-center text-red-500 gap-6">
+                <AlertCircle className="w-16 h-16 animate-pulse" />
+                <h1 className="text-2xl font-bold font-mono tracking-widest">CRITICAL SYSTEM FAILURE</h1>
+                <p>Unable to load simulation data. Sector quarantined.</p>
+                <Button onClick={() => router.push('/dashboard')} variant="outline" className="border-red-500/50 text-red-400">ABORT MISSION</Button>
+            </div>
+        );
+    }
 
-            <header className="fixed top-0 left-0 right-0 p-4 flex justify-between items-center bg-black/50 backdrop-blur-md border-b border-white/5 z-50">
-                <div className="flex items-center gap-4">
-                    <Link href="/dashboard" className="hover:text-cyan-400 transition-colors"><Home className="w-5 h-5" /></Link>
-                    <span className="font-bold tracking-widest text-cyan-100 uppercase text-sm">{room.title}</span>
+    if (!room || !currentPuzzle || gameState === 'loading') {
+        return (
+            <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center gap-6">
+                <Loader2 className="w-12 h-12 text-cyan-500 animate-spin" />
+                <div className="text-cyan-500 font-mono text-sm tracking-[0.3em] uppercase animate-pulse">
+                    Initializing Neural Link...
                 </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="h-screen w-full bg-zinc-950 flex flex-col overflow-hidden relative font-sans text-zinc-100 selection:bg-cyan-500/30">
+
+            {/* --- 1. HEADER (HUD) --- */}
+            <header className="h-16 shrink-0 bg-black/80 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-6 z-50">
+                <div className="flex items-center gap-4">
+                    <Link href="/dashboard" className="text-zinc-400 hover:text-white transition-colors">
+                        <Home className="w-5 h-5" />
+                    </Link>
+                    <div className="h-6 w-px bg-white/10" />
+                    <h1 className="text-sm font-bold uppercase tracking-widest text-cyan-100 hidden md:block">
+                        {room.title} <span className="text-zinc-500 mx-2">//</span> Sector {currentPuzzleIndex + 1}/{room.puzzles.length}
+                    </h1>
+                </div>
+
                 <div className="flex items-center gap-6 font-mono text-xs">
-                    {/* Inventory Display */}
-                    {inventory.length > 0 && (
-                        <div className="flex items-center gap-2 text-purple-400 bg-purple-950/30 px-3 py-1 rounded border border-purple-500/20">
-                            <span className="text-[10px] uppercase tracking-wider">Inventory:</span>
-                            <span className="font-bold">{inventory.length}</span>
-                        </div>
-                    )}
-                    <div className="flex items-center gap-2 text-cyan-500">
-                        <Timer className="w-4 h-4" /> {formatTime(elapsed)}
-                    </div>
-                    <div className={`flex items-center gap-2 ${hintsUsed > 0 ? 'text-amber-500' : 'text-purple-500'}`}>
-                        <Star className={`w-4 h-4 ${hintsUsed === 0 ? 'fill-current' : ''}`} />
-                        <span>Rank: {hintsUsed === 0 ? 'S' : (hintsUsed < 3 ? 'A' : 'B')}</span>
+                    <div className="flex items-center gap-2 text-cyan-400">
+                        <Timer className="w-4 h-4" />
+                        <span className="text-lg font-bold">{formatTime(elapsed)}</span>
                     </div>
                 </div>
             </header>
 
-            {gameState === 'completed' ? (
-                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-md w-full z-10 text-center">
-                    <Card className="bg-black/80 border-cyan-500 shadow-[0_0_30px_rgba(6,182,212,0.2)]">
-                        <CardHeader>
-                            <CardTitle className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 uppercase">
-                                Mission Accomplished
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="flex justify-center gap-2">
-                                {[1, 2, 3].map((star) => (
-                                    <motion.div
-                                        key={star}
-                                        initial={{ scale: 0 }}
-                                        animate={{ scale: 1 }}
-                                        transition={{ delay: 0.2 * star, type: "spring" }}
-                                    >
-                                        <Star className={`w-8 h-8 ${star <= (hintsUsed === 0 ? 3 : (hintsUsed <= 2 ? 2 : 1)) ? 'text-yellow-400 fill-yellow-400' : 'text-zinc-700'}`} />
-                                    </motion.div>
-                                ))}
+            {/* --- 2. MAIN LAYOUT (Split View) --- */}
+            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+
+                {/* --- LEFT / TOP: IMMERSIVE VIEW (60%) --- */}
+                <div className="flex-1 lg:flex-[1.4] relative bg-black group overflow-hidden">
+                    {/* 360 Viewer */}
+                    <div className="absolute inset-0">
+                        <PanoramicViewer
+                            imageUrl={getImageUrl(room.panoramicImage, 'panorama')}
+                            hotspots={room.hotspots ? Object.entries(room.hotspots).flatMap(([idx, hotspots]) => {
+                                const baseAngle = [0, 270, 90, 180][parseInt(idx)] || 0;
+                                return hotspots.map(hs => ({
+                                    id: hs.id,
+                                    angle: (baseAngle + (hs.x - 50) * 0.8 + 360) % 360,
+                                    elevation: (50 - hs.y) * 0.6,
+                                    label: hs.label,
+                                    onClick: () => handleHotspotInteraction(hs),
+                                    isSubtle: hs.isSubtle,
+                                    isDiscovered: discoveredHotspots.has(hs.id)
+                                }));
+                            }) : []}
+                            effects={room.atmosphereEffects}
+                        />
+                    </div>
+
+                    {/* Overlay: Room Description */}
+                    <div className="absolute top-6 left-6 max-w-md pointer-events-none">
+                        <div className="bg-black/60 backdrop-blur-sm p-4 rounded-lg border-l-2 border-cyan-500">
+                            <p className="text-sm text-zinc-200 italic leading-relaxed drop-shadow-md">
+                                {room.description}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="absolute bottom-6 left-6 pointer-events-none">
+                        <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-zinc-500 bg-black/40 px-3 py-1 rounded-full border border-white/5">
+                            <Eye className="w-3 h-3" />
+                            <span>Immersive Feed Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* --- RIGHT / BOTTOM: MISSION INTERFACE (40%) --- */}
+                <div className="h-[45vh] lg:h-auto lg:w-[480px] shrink-0 bg-zinc-900 border-t lg:border-t-0 lg:border-l border-white/10 flex flex-col z-20 shadow-2xl">
+
+                    {/* A. Evidence / Item Visual */}
+                    {currentPuzzle.itemImagePrompt && (
+                        <div className="h-48 shrink-0 relative bg-zinc-950 border-b border-white/5 overflow-hidden group">
+                            <div className="absolute top-3 left-3 z-10 flex gap-2">
+                                <span className="bg-cyan-950/80 text-cyan-400 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider border border-cyan-500/20">
+                                    Evidence #{currentPuzzleIndex + 1}
+                                </span>
                             </div>
-                            <div className="space-y-2 text-sm text-zinc-400">
-                                <p>Time: <span className="text-white font-mono">{formatTime(elapsed)}</span></p>
-                                <p>Hints Used: <span className="text-white font-mono">{hintsUsed}</span></p>
+
+                            {/* Using unoptimized Next/Image for external AI assets or robust img tag */}
+                            <div className="w-full h-full flex items-center justify-center p-4">
+                                <img
+                                    src={getImageUrl(currentPuzzle.itemImagePrompt, 'item', currentPuzzleIndex)}
+                                    alt="Puzzle Evidence"
+                                    className="h-full w-full object-contain drop-shadow-2xl transition-transform duration-500 group-hover:scale-105"
+                                />
                             </div>
-                            <div className="p-4 bg-cyan-950/30 rounded border border-cyan-500/20 text-xs text-cyan-300">
-                                DATABASE UPDATED: Next Sector Unlocked.
-                            </div>
-                        </CardContent>
-                        <CardFooter className="flex flex-col gap-3">
-                            <Button onClick={() => router.push('/dashboard')} className="w-full bg-cyan-600 hover:bg-cyan-500 text-black font-bold">
-                                Return to Mission Control
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                </motion.div>
-            ) : (
-                <div className="flex flex-col w-full max-w-7xl z-10 mt-12 gap-6">
-                    {/* CRITICAL: Question UI - Always Visible at Top */}
-                    <Card className="bg-black/80 backdrop-blur-xl border-cyan-500/30 shadow-2xl">
-                        <CardHeader className="border-b border-cyan-500/20 pb-4">
-                            <CardTitle className="flex items-center justify-between">
-                                <span className="text-cyan-400 text-lg uppercase tracking-wider">Puzzle #{currentPuzzleIndex + 1}</span>
-                                <span className="text-xs text-zinc-500 font-mono">{room.title}</span>
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-6 pb-4">
-                            <p className="text-xl text-white font-medium leading-relaxed mb-6">
+                        </div>
+                    )}
+
+                    {/* B. Question & Interaction Area */}
+                    <div className="flex-1 flex flex-col overflow-y-auto custom-scrollbar p-6 relative">
+                        {/* Question */}
+                        <div className="mb-8">
+                            <h2 className="text-zinc-400 text-xs font-mono uppercase mb-3 flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
+                                Awaiting Input
+                            </h2>
+                            <p className="text-lg md:text-xl text-white font-medium leading-relaxed">
                                 {currentPuzzle.question}
                             </p>
+                        </div>
 
-                            {/* CRITICAL: Answer Options - Always Visible */}
+                        {/* Answers / Input */}
+                        <div className="space-y-4">
                             {currentPuzzle.type === 'choice' && currentPuzzle.options ? (
                                 <div className="grid gap-3">
                                     {currentPuzzle.options.map((opt, idx) => (
-                                        <Button
+                                        <button
                                             key={opt}
-                                            variant="outline"
-                                            className="justify-start h-auto py-4 px-6 text-left text-base border-zinc-700 hover:border-cyan-500 hover:bg-cyan-950/30 hover:text-cyan-400 transition-all"
-                                            onClick={() => { setInputValue(opt); setTimeout(handleInputSubmit, 100); }}
+                                            onClick={() => handleInputSubmit(opt)}
+                                            className="w-full text-left p-4 rounded-lg bg-zinc-800/50 border border-white/5 hover:bg-cyan-950/30 hover:border-cyan-500/50 hover:text-cyan-100 transition-all group flex items-start gap-4 active:scale-[0.99]"
                                         >
-                                            <div className="w-8 h-8 rounded-full border-2 border-zinc-600 mr-4 flex items-center justify-center text-sm font-bold text-zinc-500 group-hover:border-cyan-500 group-hover:text-cyan-400">
+                                            <div className="w-6 h-6 shrink-0 rounded-full border-2 border-zinc-600 group-hover:border-cyan-500 flex items-center justify-center text-[10px] text-zinc-400 font-bold group-hover:text-cyan-400 mt-0.5">
                                                 {String.fromCharCode(65 + idx)}
                                             </div>
-                                            <span className="flex-1">{opt}</span>
-                                        </Button>
+                                            <span className="text-sm font-medium leading-snug">{opt}</span>
+                                        </button>
                                     ))}
                                 </div>
                             ) : (
                                 <div className="space-y-4">
                                     <input
-                                        autoFocus
-                                        className="w-full bg-zinc-900 border-2 border-zinc-700 rounded-lg p-4 text-lg focus:border-cyan-500 focus:outline-none text-white font-mono"
-                                        placeholder="Type your answer..."
+                                        type="text"
                                         value={inputValue}
                                         onChange={(e) => setInputValue(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleInputSubmit()}
+                                        placeholder="Enter decryption key..."
+                                        className="w-full bg-black border border-zinc-700 rounded-lg p-4 text-white font-mono placeholder:text-zinc-700 focus:outline-none focus:border-cyan-500 transition-colors"
+                                        autoFocus
                                     />
-                                    <Button
-                                        className="w-full bg-cyan-600 hover:bg-cyan-500 text-black font-bold h-14 text-lg"
-                                        onClick={handleInputSubmit}
-                                    >
-                                        Submit Answer
+                                    <Button onClick={() => handleInputSubmit()} className="w-full bg-cyan-600 hover:bg-cyan-500 text-black font-bold h-12 uppercase tracking-widest">
+                                        Submit Data
                                     </Button>
                                 </div>
                             )}
+                        </div>
 
-                            {/* Feedback Messages */}
-                            {feedback === 'success' && (
-                                <div className="mt-4 p-4 bg-green-950/30 border border-green-500/30 rounded-lg flex items-center gap-3 text-green-400">
-                                    <CheckCircle className="w-5 h-5" />
-                                    <span className="font-medium">Correct! Moving to next puzzle...</span>
-                                </div>
+                        {/* Feedback States */}
+                        <AnimatePresence>
+                            {feedback && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0 }}
+                                    className={`mt-4 p-4 rounded-lg border flex items-center gap-3 ${feedback === 'success' ? 'bg-green-950/50 border-green-500/30 text-green-400' : 'bg-red-950/50 border-red-500/30 text-red-400'}`}
+                                >
+                                    {feedback === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+                                    <span className="font-bold text-sm uppercase">
+                                        {feedback === 'success' ? "Access Granted" : "Access Denied"}
+                                    </span>
+                                </motion.div>
                             )}
-                            {feedback === 'error' && (
-                                <div className="mt-4 p-4 bg-red-950/30 border border-red-500/30 rounded-lg flex items-center gap-3 text-red-400">
-                                    <AlertCircle className="w-5 h-5" />
-                                    <span className="font-medium">Incorrect. Try again.</span>
-                                </div>
-                            )}
+                        </AnimatePresence>
 
-                            {/* Hints Section */}
-                            <AnimatePresence>
-                                {visibleHints.length > 0 && (
+                        {/* Hints Area */}
+                        <div className="mt-8 border-t border-white/5 pt-6">
+                            <AnimatePresence mode="popLayout">
+                                {visibleHints.map((hint, i) => (
                                     <motion.div
+                                        key={i}
                                         initial={{ opacity: 0, height: 0 }}
                                         animate={{ opacity: 1, height: 'auto' }}
-                                        className="space-y-2 mt-6 border-t border-white/10 pt-4"
+                                        className="mb-3 text-xs text-purple-300 bg-purple-950/20 border border-purple-500/20 p-3 rounded flex gap-2"
                                     >
-                                        {visibleHints.map((hint, idx) => (
-                                            <motion.div
-                                                key={idx}
-                                                initial={{ x: -10, opacity: 0 }}
-                                                animate={{ x: 0, opacity: 1 }}
-                                                transition={{ delay: idx * 0.1 }}
-                                                className="flex gap-3 text-sm text-purple-300 bg-purple-950/20 p-4 rounded-lg border border-purple-500/20"
-                                            >
-                                                <HelpCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                                                <p>{hint}</p>
-                                            </motion.div>
-                                        ))}
+                                        <HelpCircle className="w-4 h-4 shrink-0" />
+                                        <span>{hint}</span>
                                     </motion.div>
-                                )}
+                                ))}
                             </AnimatePresence>
-                        </CardContent>
-                        <CardFooter className="border-t border-white/10 p-4 flex justify-between items-center">
+
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={requestHint}
                                 disabled={loadingHint}
-                                className="text-zinc-500 hover:text-purple-400"
+                                className="w-full text-zinc-500 hover:text-white hover:bg-white/5 flex items-center justify-center gap-2"
                             >
-                                {loadingHint ? <Loader2 className="w-4 h-4 animate-spin" /> : <HelpCircle className="w-4 h-4" />}
-                                <span className="ml-2">Request Hint ({hintsUsed} used)</span>
+                                {loadingHint ? <Loader2 className="w-3 h-3 animate-spin" /> : <HelpCircle className="w-3 h-3" />}
+                                <span className="text-xs uppercase tracking-wider">
+                                    {visibleHints.length === 0 ? "Request Output Hint" : "Analyze Further"}
+                                </span>
                             </Button>
-                            <div className="text-xs text-zinc-500 font-mono">
-                                Time: {formatTime(elapsed)}
-                            </div>
-                        </CardFooter>
-                    </Card>
-
-                    {/* OPTIONAL: Visual Scene - Non-blocking */}
-                    <div className="grid md:grid-cols-2 gap-6">
-                        {/* 360° Panoramic Viewer */}
-                        <motion.div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-zinc-900 min-h-[400px]">
-                            <PanoramicViewer
-                                imageUrl={`https://pollinations.ai/p/${encodeURIComponent(room.panoramicImage || room.imagePrompt + ", 360 degree equirectangular spherical panorama, high detailed 8k")}?width=2048&height=1024&seed=${roomId}&nologo=true&model=flux`}
-                                hotspots={room.hotspots ? Object.entries(room.hotspots).flatMap(([idx, hotspots]) => {
-                                    const baseAngle = [0, 270, 90, 180][parseInt(idx)] || 0;
-                                    return hotspots.map(hs => ({
-                                        id: hs.id,
-                                        angle: (baseAngle + (hs.x - 50) * 0.8 + 360) % 360,
-                                        elevation: (50 - hs.y) * 0.6,
-                                        label: hs.label,
-                                        onClick: () => handleHotspotInteraction(hs),
-                                        isSubtle: hs.isSubtle,
-                                        isDiscovered: discoveredHotspots.has(hs.id)
-                                    }));
-                                }) : []}
-                                effects={room.atmosphereEffects}
-                            />
-                            <div className="absolute bottom-4 left-4 right-4 pointer-events-none">
-                                <p className="text-white/80 text-xs italic drop-shadow-md">
-                                    {room.description}
-                                </p>
-                            </div>
-                        </motion.div>
-
-                        {/* Puzzle Item Visual */}
-                        {currentPuzzle.itemImagePrompt && (
-                            <div className="relative rounded-2xl overflow-hidden border border-cyan-500/30 shadow-2xl bg-zinc-900 min-h-[400px] flex items-center justify-center">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                    src={getImageUrl(currentPuzzle.itemImagePrompt, 'item', currentPuzzleIndex)}
-                                    alt="Puzzle Item"
-                                    className="w-full h-full object-contain p-8"
-                                />
-                                <div className="absolute top-4 left-4 bg-black/80 backdrop-blur-sm px-3 py-1 rounded-full border border-cyan-500/30">
-                                    <span className="text-xs text-cyan-400 font-mono uppercase">Evidence</span>
-                                </div>
-                            </div>
-                        )}
+                        </div>
                     </div>
                 </div>
-            )}
+            </div>
 
-            {/* Hotspot Inspection Modal */}
+            {/* --- 3. MODALS --- */}
+
+            {/* Hotspot Inspection */}
             <AnimatePresence>
                 {selectedHotspot && (
                     <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm"
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
                         onClick={() => setSelectedHotspot(null)}
                     >
                         <motion.div
-                            initial={{ scale: 0.9, y: 20 }}
-                            animate={{ scale: 1, y: 0 }}
-                            exit={{ scale: 0.9, y: 20 }}
-                            className="bg-zinc-900 border border-cyan-500/30 rounded-2xl overflow-hidden max-w-2xl w-full shadow-[0_0_50px_rgba(6,182,212,0.2)]"
-                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                            initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+                            className="w-full max-w-3xl bg-zinc-900 border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
+                            onClick={e => e.stopPropagation()}
                         >
-                            <div className="relative aspect-video bg-black">
-                                {selectedHotspot.imagePrompt ? (
-                                    <>
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img
-                                            src={getImageUrl(selectedHotspot.imagePrompt, 'hotspot', parseInt(selectedHotspot.id.split('_')[1]))}
-                                            alt={selectedHotspot.label}
-                                            className="w-full h-full object-cover"
-                                        />
-                                    </>
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-zinc-700">
-                                        <HelpCircle className="w-12 h-12" />
-                                    </div>
-                                )}
-                                <div className="absolute top-4 right-4">
-                                    <Button variant="ghost" size="icon" onClick={() => setSelectedHotspot(null)} className="text-white hover:bg-white/10">
-                                        <Lock className="w-5 h-5 rotate-45" />
-                                    </Button>
+                            <div className="aspect-video relative bg-black">
+                                <img
+                                    src={getImageUrl(selectedHotspot.imagePrompt, 'hotspot', selectedHotspot.id.length)}
+                                    className="w-full h-full object-cover"
+                                    alt="Inspection"
+                                />
+                                <button
+                                    onClick={() => setSelectedHotspot(null)}
+                                    className="absolute top-4 right-4 bg-black/50 hover:bg-cyan-600/80 text-white rounded-full p-2 transition-colors border border-white/10"
+                                >
+                                    <Lock className="w-4 h-4" />
+                                </button>
+                                <div className="absolute bottom-4 left-4">
+                                    <span className="bg-cyan-600 text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">
+                                        {selectedHotspot.interactionType}
+                                    </span>
                                 </div>
                             </div>
                             <div className="p-8">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-500 bg-cyan-500/10 px-2 py-0.5 rounded">
-                                        {selectedHotspot.interactionType}
-                                    </span>
-                                    <h3 className="text-xl font-bold text-white uppercase tracking-wider">{selectedHotspot.label}</h3>
-                                </div>
-                                <p className="text-zinc-400 leading-relaxed italic border-l-2 border-cyan-500/30 pl-4 py-1">
-                                    &quot;{selectedHotspot.description}&quot;
+                                <h3 className="text-2xl font-bold text-white mb-2">{selectedHotspot.label}</h3>
+                                <p className="text-zinc-400 leading-relaxed text-sm md:text-base border-l-2 border-cyan-500 pl-4">
+                                    {selectedHotspot.description}
                                 </p>
-                                <div className="mt-8 flex justify-end">
-                                    <Button onClick={() => setSelectedHotspot(null)} className="bg-cyan-600 hover:bg-cyan-500 text-black font-bold uppercase tracking-widest text-xs px-8">
-                                        Close Data Node
-                                    </Button>
-                                </div>
                             </div>
                         </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Success / Game Over Modal (Handled in main layout via conditional rendering if needed, or simple redirect) */}
+            {gameState === 'completed' && (
+                <div className="fixed inset-0 z-[150] bg-black/90 backdrop-blur-md flex items-center justify-center p-6">
+                    <Card className="max-w-md w-full bg-zinc-900 border-cyan-500 shadow-2xl shadow-cyan-900/50">
+                        <CardHeader className="text-center pb-2">
+                            <CardTitle className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 uppercase tracking-tighter">
+                                Sector Cleared
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="text-center space-y-6 pt-6">
+                            <div className="flex justify-center gap-2">
+                                <Star className="w-10 h-10 text-yellow-400 fill-yellow-400 drop-shadow-lg" />
+                                <Star className={`w-10 h-10 ${calculateRank(hintsUsed, (elapsed), 600) === 'S' || calculateRank(hintsUsed, (elapsed), 600) === 'A' ? 'text-yellow-400 fill-yellow-400' : 'text-zinc-700'} transition-all`} />
+                                <Star className={`w-10 h-10 ${calculateRank(hintsUsed, (elapsed), 600) === 'S' ? 'text-yellow-400 fill-yellow-400' : 'text-zinc-700'} transition-all`} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 text-sm font-mono text-zinc-400">
+                                <div className="bg-black/40 p-3 rounded">
+                                    <div className="text-xs text-zinc-500 uppercase">Time</div>
+                                    <div className="text-white font-bold text-lg">{formatTime(elapsed)}</div>
+                                </div>
+                                <div className="bg-black/40 p-3 rounded">
+                                    <div className="text-xs text-zinc-500 uppercase">Hints</div>
+                                    <div className="text-white font-bold text-lg">{hintsUsed}</div>
+                                </div>
+                            </div>
+                        </CardContent>
+                        <CardFooter>
+                            <Button onClick={() => router.push('/dashboard')} className="w-full bg-white text-black hover:bg-cyan-50 font-bold uppercase tracking-widest h-12">
+                                New Mission
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                </div>
+            )}
 
             <UpgradeModal
                 isOpen={showUpgradeModal}
@@ -649,6 +565,6 @@ export default function GamePage() {
                 tier={usageLimitInfo.tier}
                 limit={usageLimitInfo.limit}
             />
-        </div >
+        </div>
     );
 }
