@@ -1,22 +1,20 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ROOMS, Room, Puzzle, Hotspot, InteractionState } from "@/lib/game-data";
+import { ROOMS, Room, Hotspot, InteractionState } from "@/lib/game-data";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, CheckCircle, HelpCircle, Timer, ArrowRight, Home, Loader2, Star, Lock } from "lucide-react";
 import confetti from "canvas-confetti";
 import { useUser } from "@clerk/nextjs";
 import { ACHIEVEMENT_BADGES, checkAchievement, calculateRank } from "@/lib/rewards";
-import { PanoramicViewer } from "@/components/PanoramicViewer";
 import { UpgradeModal } from "@/components/ui/upgrade-modal";
 
 export default function GamePage() {
-    const { user } = useUser();
+    useUser();
     const params = useParams();
     const router = useRouter();
     const roomId = params.roomId as string;
@@ -43,7 +41,7 @@ export default function GamePage() {
     const [elapsed, setElapsed] = useState(0);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [usageLimitInfo, setUsageLimitInfo] = useState({ tier: 'free', limit: 3 });
-    const [isPending, startTransition] = useTransition();
+    const [, startTransition] = useTransition();
 
     useEffect(() => {
         startTransition(() => {
@@ -544,6 +542,7 @@ export default function GamePage() {
                             </Card>
                             {currentPuzzle.itemImagePrompt && (
                                 <div className="w-32 aspect-square rounded-xl overflow-hidden border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)] cursor-zoom-in hover:scale-105 transition-transform bg-zinc-900 shrink-0">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img
                                         src={getImageUrl(currentPuzzle.itemImagePrompt, 'item', currentPuzzleIndex)}
                                         alt="Target Item"
@@ -647,17 +646,20 @@ export default function GamePage() {
                         >
                             <div className="relative aspect-video bg-black">
                                 {selectedHotspot.imagePrompt ? (
-                                    <img
-                                        src={getImageUrl(selectedHotspot.imagePrompt, 'hotspot', parseInt(selectedHotspot.id.split('_')[1]))}
-                                        alt={selectedHotspot.label}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                            const target = e.target as HTMLImageElement;
-                                            if (selectedHotspot.imagePrompt && !target.src.includes('pollinations.ai')) {
-                                                target.src = `https://pollinations.ai/p/${encodeURIComponent(selectedHotspot.imagePrompt)}?width=1280&height=720&seed=${roomId}&nologo=true`;
-                                            }
-                                        }}
-                                    />
+                                    <>
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
+                                            src={getImageUrl(selectedHotspot.imagePrompt, 'hotspot', parseInt(selectedHotspot.id.split('_')[1]))}
+                                            alt={selectedHotspot.label}
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                const target = e.target as HTMLImageElement;
+                                                if (selectedHotspot.imagePrompt && !target.src.includes('pollinations.ai')) {
+                                                    target.src = `https://pollinations.ai/p/${encodeURIComponent(selectedHotspot.imagePrompt)}?width=1280&height=720&seed=${roomId}&nologo=true`;
+                                                }
+                                            }}
+                                        />
+                                    </>
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-zinc-700">
                                         <HelpCircle className="w-12 h-12" />

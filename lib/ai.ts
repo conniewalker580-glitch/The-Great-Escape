@@ -133,7 +133,8 @@ export async function generateEscapeRoom(theme: string, difficulty: string, stat
     }
 }
 
-export async function getAdaptiveHint(puzzleQuestion: string, userAttempts: string[]) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function getAdaptiveHint(_puzzleQuestion: string, _userAttempts: string[]) {
     // ... Simplified hint logic for brevity, can expand later
     return "Focus on the patterns in the shadows.";
 }

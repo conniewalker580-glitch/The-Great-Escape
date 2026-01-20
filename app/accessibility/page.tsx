@@ -136,8 +136,8 @@ export default function AccessibilitySettings() {
                 <div className="mt-8 p-6 bg-cyan-950/20 border border-cyan-500/30 rounded-lg">
                     <h3 className="text-lg font-bold text-cyan-400 mb-2">Need Help?</h3>
                     <p className="text-zinc-300 text-sm">
-                        If you're experiencing any accessibility issues, please contact our support team. 
-                        We're committed to making this game accessible to everyone.
+                        If you&apos;re experiencing any accessibility issues, please contact our support team.
+                        We&apos;re committed to making this game accessible to everyone.
                     </p>
                 </div>
             </div>

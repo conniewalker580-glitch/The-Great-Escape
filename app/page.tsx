@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Play, Star, Rocket, Activity, Lock } from "lucide-react";
 import Link from "next/link";
 import { SignInButton, SignUpButton, SignedIn, SignedOut } from "@clerk/nextjs";

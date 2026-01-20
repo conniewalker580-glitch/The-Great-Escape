@@ -59,7 +59,7 @@ export default function DashboardPage() {
 
             const data = await res.json();
             setGeneratedRooms(prev => [...prev, data.room]);
-        } catch (e) {
+        } catch {
             alert("Connection Error");
         } finally {
             setIsGenerating(false);

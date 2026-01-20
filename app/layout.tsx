@@ -42,6 +42,10 @@ export default function RootLayout({
             <main id="main-content">
               {children}
             </main>
+            <footer className="w-full py-6 text-center text-xs text-zinc-600 font-mono border-t border-white/5 bg-black/50">
+              <p>Escape Room AI © 2024</p>
+              <p className="mt-2">Created by C.S. Walker | <a href="mailto:snapmoodsai@gmail.com" className="text-zinc-500 hover:text-cyan-500 transition-colors">snapmoodsai@gmail.com</a></p>
+            </footer>
           </AccessibilityProvider>
         </body>
       </html>

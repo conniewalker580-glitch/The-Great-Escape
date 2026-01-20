@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
     try {
         const hint = await getAdaptiveHint(puzzle, attempts || []);
         return NextResponse.json({ hint });
-    } catch (e) {
+    } catch {
         return NextResponse.json({ error: "Hint generation failed" }, { status: 500 });
     }
 }

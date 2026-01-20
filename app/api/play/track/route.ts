@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { roomId } = await req.json();
+    await req.json(); // Consume body but ignore for now
 
     // Ensure monthly reset
     resetIfNewMonth(authUserId);

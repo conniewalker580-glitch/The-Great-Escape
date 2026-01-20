@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useTransition } from 'react';
 import { motion } from 'framer-motion';
-import { useAccessibility } from '@/lib/accessibility-context';
+
 
 interface PanoramicViewerProps {
     imageUrl: string;
