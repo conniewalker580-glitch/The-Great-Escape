@@ -1,21 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function PreviewPage() {
     const [status, setStatus] = useState("Idle");
-    const [userData, setUserData] = useState<any>(null);
+    const [userData, setUserData] = useState<unknown>(null);
     const [aiResult, setAiResult] = useState("");
 
-    const fetchUser = async () => {
+    const [, startTransition] = useTransition();
+
+    const fetchUser = useCallback(async () => {
         const res = await fetch("/api/user-progress");
         const data = await res.json();
-        setUserData(data);
-    };
+        startTransition(() => {
+            setUserData(data);
+        });
+    }, []);
 
-    useEffect(() => { fetchUser(); }, []);
+    useEffect(() => {
+        fetchUser();
+    }, [fetchUser]);
 
     const testGenerate = async () => {
         setStatus("Generating...");

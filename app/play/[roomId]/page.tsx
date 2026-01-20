@@ -1,15 +1,19 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { ROOMS, Room, Puzzle } from "@/lib/game-data";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, CheckCircle, HelpCircle, Timer, ArrowRight, Home, Loader2, Star, Lock } from "lucide-react";
+import { useState, useRef, useEffect, useCallback, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import confetti from 'canvas-confetti';
+import { ROOMS, Room, Puzzle, Hotspot, InteractionState } from "@/lib/game-data";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertCircle, CheckCircle, HelpCircle, Timer, ArrowRight, Home, Loader2, Star, Lock } from "lucide-react";
+import confetti from "canvas-confetti";
 import { useUser } from "@clerk/nextjs";
+import { ACHIEVEMENT_BADGES, checkAchievement, calculateRank } from "@/lib/rewards";
+import { PanoramicViewer } from "@/components/PanoramicViewer";
+import { UpgradeModal } from "@/components/ui/upgrade-modal";
 
 export default function GamePage() {
     const { user } = useUser();
@@ -24,6 +28,10 @@ export default function GamePage() {
     const [inputValue, setInputValue] = useState("");
     const [feedback, setFeedback] = useState<"success" | "error" | null>(null);
     const [gameState, setGameState] = useState<"loading" | "playing" | "completed" | "error">("loading");
+    const [selectedHotspot, setSelectedHotspot] = useState<Hotspot | null>(null);
+    const [inventory, setInventory] = useState<string[]>([]); // Collected item IDs
+    const [hotspotStates, setHotspotStates] = useState<Record<string, InteractionState>>({}); // Track interaction state per hotspot
+    const [discoveredHotspots, setDiscoveredHotspots] = useState<Set<string>>(new Set()); // Hotspots user has found
 
     // Performance Tracking
     const [hintsUsed, setHintsUsed] = useState(0);
@@ -31,23 +39,57 @@ export default function GamePage() {
     const [visibleHints, setVisibleHints] = useState<string[]>([]);
     const [loadingHint, setLoadingHint] = useState(false);
     const [failedAttempts, setFailedAttempts] = useState(0);
-    const [startTime] = useState(Date.now());
+    const [startTime, setStartTime] = useState<number>(0);
     const [elapsed, setElapsed] = useState(0);
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [usageLimitInfo, setUsageLimitInfo] = useState({ tier: 'free', limit: 3 });
+    const [isPending, startTransition] = useTransition();
 
-    const getImageUrl = (prompt: string) => {
+    useEffect(() => {
+        startTransition(() => {
+            setStartTime(Date.now());
+        });
+    }, []);
+
+    const getImageUrl = (prompt: string, type: 'scene' | 'hotspot' | 'item' | 'panorama' = 'scene', index?: number) => {
+        // Try panoramic image first if available
+        if (type === 'panorama') {
+            return `/rooms/${roomId}-panorama.webp`;
+        }
+        // Try local image first if it's a scene
+        if (type === 'scene' && typeof index === 'number') {
+            return `/rooms/${roomId}-${index}.webp`;
+        }
+        if (type === 'item') {
+            return `/rooms/${roomId}-item-${index || 0}.webp`;
+        }
+        if (type === 'hotspot') {
+            return `/rooms/${roomId}-hotspot-${index || 0}.webp`;
+        }
+
+        // Fallback to Pollinations AI
         return `https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=1280&height=720&seed=${roomId}&nologo=true`;
     };
+
+    const [imageLoaded, setImageLoaded] = useState(false);
+    useEffect(() => {
+        startTransition(() => {
+            setImageLoaded(false);
+        });
+    }, [currentSceneIndex, currentPuzzleIndex]);
 
     const nextScene = () => setCurrentSceneIndex(prev => (prev + 1) % 4);
     const prevScene = () => setCurrentSceneIndex(prev => (prev - 1 + 4) % 4);
 
     // Reset puzzle-specific state when moving to next puzzle
     useEffect(() => {
-        setHintIndex(-1);
-        setVisibleHints([]);
-        setFailedAttempts(0);
-        setFeedback(null);
-        setInputValue("");
+        startTransition(() => {
+            setHintIndex(-1);
+            setVisibleHints([]);
+            setFailedAttempts(0);
+            setFeedback(null);
+            setInputValue("");
+        });
     }, [currentPuzzleIndex]);
 
     // Load Room Logic
@@ -64,7 +106,7 @@ export default function GamePage() {
                 const res = await fetch("/api/user-progress");
                 if (res.ok) {
                     const data = await res.json();
-                    const genRoom = data.generatedRooms?.find((r: any) => r.id === roomId);
+                    const genRoom = data.generatedRooms?.find((r: { id: string, data: Room }) => r.id === roomId);
                     if (genRoom) {
                         setRoom({ ...genRoom.data, id: genRoom.id });
                         setGameState("playing");
@@ -117,37 +159,164 @@ export default function GamePage() {
     const currentScenePrompt = scenes[currentSceneIndex];
 
     const validateAnswer = (input: string) => {
-        const normalize = (s: string) => s?.toLowerCase().trim().replace(/[^a-z0-9]/g, '') || "";
+        // Enhanced normalization for better answer matching
+        const normalize = (s: string) => {
+            return s?.toLowerCase()
+                .trim()
+                .replace(/[^a-z0-9.\-]/g, '') // Keep dots and dashes for morse/special codes
+                || "";
+        };
+
         const target = Array.isArray(currentPuzzle.answer) ? currentPuzzle.answer : [currentPuzzle.answer];
-        return target.some(ans => normalize(ans) === normalize(input));
+        const normalizedInput = normalize(input);
+
+        // Check exact normalized match
+        if (target.some(ans => normalize(ans) === normalizedInput)) {
+            return true;
+        }
+
+        // For numeric answers, also check if they're mathematically equal
+        const inputNum = parseFloat(input);
+        if (!isNaN(inputNum)) {
+            return target.some(ans => {
+                const ansNum = parseFloat(String(ans));
+                return !isNaN(ansNum) && Math.abs(inputNum - ansNum) < 0.001;
+            });
+        }
+
+        return false;
     };
 
     const handleInputSubmit = async () => {
+        if (!room) return;
+
         if (validateAnswer(inputValue)) {
             setFeedback("success");
-            confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 }, colors: ['#06b6d4', '#a855f7'] });
 
-            setTimeout(async () => {
-                const nextIndex = currentPuzzleIndex + 1;
-                if (nextIndex >= room.puzzles.length) {
-                    setGameState("completed");
-                    confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 } });
+            // Celebration
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#06b6d4', '#a855f7', '#10b981']
+            });
 
-                    const stars = hintsUsed === 0 ? 3 : (hintsUsed <= 2 ? 2 : 1);
+            const isLastPuzzle = currentPuzzleIndex === room.puzzles.length - 1;
+
+            if (isLastPuzzle) {
+                const timeSeconds = Math.floor((Date.now() - startTime) / 1000);
+                const rank = calculateRank(hintsUsed, timeSeconds, 600); // 10 min target
+
+                setGameState("completed");
+
+                // Update Rewards and Achievements locally
+                const storedStats = localStorage.getItem('player_stats');
+                const playerStats = storedStats ? JSON.parse(storedStats) : {
+                    roomsCompleted: 0,
+                    perfectScores: 0,
+                    speedRuns: 0,
+                    noHintRuns: 0,
+                    dailyStreak: 1
+                };
+
+                playerStats.roomsCompleted += 1;
+                if (rank === 'S') playerStats.perfectScores += 1;
+                if (timeSeconds < 180) playerStats.speedRuns += 1;
+                if (hintsUsed === 0) playerStats.noHintRuns += 1;
+
+                const currentAchievements = JSON.parse(localStorage.getItem('achievements') || '[]');
+                const newAchievements: string[] = [];
+
+                ACHIEVEMENT_BADGES.forEach(badge => {
+                    if (!currentAchievements.includes(badge.id)) {
+                        if (checkAchievement(badge, playerStats)) {
+                            newAchievements.push(badge.id);
+                        }
+                    }
+                });
+
+                localStorage.setItem('player_stats', JSON.stringify(playerStats));
+                localStorage.setItem('achievements', JSON.stringify([...currentAchievements, ...newAchievements]));
+
+                // Track progress and usage
+                try {
+                    // Update user progress (stars, rank)
+                    const stars = rank === 'S' ? 3 : (rank === 'A' ? 2 : 1);
                     await fetch("/api/user-progress", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ roomId: room.id, stars })
+                        body: JSON.stringify({
+                            roomId: room.id,
+                            stars,
+                            timeSeconds,
+                            rank
+                        })
                     });
-                } else {
-                    setCurrentPuzzleIndex(nextIndex);
+
+                    // Track room usage for subscription limits
+                    const trackRes = await fetch("/api/play/track", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ roomId: room.id })
+                    });
+
+                    if (trackRes.status === 403) {
+                        const data = await trackRes.json();
+                        setUsageLimitInfo({ tier: data.tier, limit: data.limit });
+                        setShowUpgradeModal(true);
+                    }
+                } catch (e) {
+                    console.error("Failed to sync progress or track usage", e);
                 }
-            }, 1000);
+
+            } else {
+                // Advance to next puzzle
+                setTimeout(() => {
+                    setCurrentPuzzleIndex(prev => prev + 1);
+                }, 1000);
+            }
         } else {
             setFeedback("error");
             setFailedAttempts(prev => prev + 1);
             setTimeout(() => setFeedback(null), 1500);
         }
+    };
+
+    const handleHotspotInteraction = (hotspot: Hotspot) => {
+        // Mark as discovered
+        setDiscoveredHotspots(prev => new Set([...prev, hotspot.id]));
+
+        // Check if item is required
+        if (hotspot.requiresItem && !inventory.includes(hotspot.requiresItem)) {
+            setSelectedHotspot({
+                ...hotspot,
+                description: `This ${hotspot.label} appears to be locked or requires something to interact with it.`
+            });
+            return;
+        }
+
+        // Handle interaction based on type
+        const currentState = hotspotStates[hotspot.id] || 'idle';
+
+        if (hotspot.interactionType === 'pickup' && currentState !== 'collected') {
+            // Add to inventory
+            if (hotspot.revealsItem) {
+                setInventory(prev => [...prev, hotspot.revealsItem!]);
+            }
+            setHotspotStates(prev => ({ ...prev, [hotspot.id]: 'collected' }));
+        } else if (hotspot.interactionType === 'open' && currentState !== 'interacted') {
+            // Open the object and potentially reveal an item
+            setHotspotStates(prev => ({ ...prev, [hotspot.id]: 'interacted' }));
+            if (hotspot.revealsItem) {
+                setInventory(prev => [...prev, hotspot.revealsItem!]);
+            }
+        } else {
+            // Just mark as interacted for inspect/examine/reveal/rotate
+            setHotspotStates(prev => ({ ...prev, [hotspot.id]: 'interacted' }));
+        }
+
+        // Show the hotspot modal
+        setSelectedHotspot(hotspot);
     };
 
     const requestHint = async () => {
@@ -202,8 +371,14 @@ export default function GamePage() {
 
             {/* AMBIENT BACKGROUND (Blurred Scene) */}
             <div
-                className="absolute inset-0 opacity-20 blur-3xl scale-110 pointer-events-none transition-all duration-1000"
-                style={{ backgroundImage: `url(${getImageUrl(currentScenePrompt)})`, backgroundSize: 'cover' }}
+                className="absolute inset-0 opacity-40 blur-3xl scale-110 pointer-events-none transition-all duration-1000"
+                style={{
+                    backgroundImage: `url(${getImageUrl(currentScenePrompt, 'scene', currentSceneIndex)})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    minHeight: '100vh',
+                    minWidth: '100vw'
+                }}
             />
 
             <header className="fixed top-0 left-0 right-0 p-4 flex justify-between items-center bg-black/50 backdrop-blur-md border-b border-white/5 z-50">
@@ -212,6 +387,13 @@ export default function GamePage() {
                     <span className="font-bold tracking-widest text-cyan-100 uppercase text-sm">{room.title}</span>
                 </div>
                 <div className="flex items-center gap-6 font-mono text-xs">
+                    {/* Inventory Display */}
+                    {inventory.length > 0 && (
+                        <div className="flex items-center gap-2 text-purple-400 bg-purple-950/30 px-3 py-1 rounded border border-purple-500/20">
+                            <span className="text-[10px] uppercase tracking-wider">Inventory:</span>
+                            <span className="font-bold">{inventory.length}</span>
+                        </div>
+                    )}
                     <div className="flex items-center gap-2 text-cyan-500">
                         <Timer className="w-4 h-4" /> {formatTime(elapsed)}
                     </div>
@@ -261,8 +443,8 @@ export default function GamePage() {
             ) : (
                 <div className="flex flex-col md:flex-row gap-8 w-full max-w-7xl z-10 mt-12 h-[80vh]">
                     {/* Visual Scene / 360 Walkthrough */}
-                    <motion.div key={`${currentPuzzle.id}-scene`} className="flex-1 flex flex-col relative group">
-                        <div className="relative flex-1 rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-zinc-900">
+                    <motion.div key={`${currentPuzzle.id}-scene`} className="flex-1 flex flex-col relative group min-h-[400px]">
+                        <div className="relative flex-1 rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-zinc-900 min-h-[300px]">
                             <AnimatePresence mode="wait">
                                 <motion.img
                                     key={currentSceneIndex}
@@ -270,11 +452,56 @@ export default function GamePage() {
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: -20 }}
                                     transition={{ duration: 0.5 }}
-                                    src={getImageUrl(currentScenePrompt)}
-                                    alt="Room Scene"
-                                    className="absolute inset-0 w-full h-full object-cover"
+                                    src={getImageUrl(currentScenePrompt, 'scene', currentSceneIndex)}
+                                    alt={`Room Scene: ${currentScenePrompt}`}
+                                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                                    onLoad={() => setImageLoaded(true)}
+                                    onError={(e) => {
+                                        // Fallback if local image fails
+                                        const target = e.target as HTMLImageElement;
+                                        if (!target.src.includes('pollinations.ai')) {
+                                            target.src = `https://pollinations.ai/p/${encodeURIComponent(currentScenePrompt)}?width=1280&height=720&seed=${roomId}&nologo=true`;
+                                        }
+                                    }}
                                 />
+                                {!imageLoaded && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
+                                        <Loader2 className="w-10 h-10 text-cyan-500 animate-spin" />
+                                    </div>
+                                )}
                             </AnimatePresence>
+
+                            {/* Hotspots Layer */}
+                            <div className="absolute inset-0 z-20 pointer-events-none">
+                                {room.hotspots?.[currentSceneIndex]?.map((hs) => {
+                                    const isDiscovered = discoveredHotspots.has(hs.id);
+                                    const isCollected = hotspotStates[hs.id] === 'collected';
+                                    const isSubtle = hs.isSubtle !== false;
+                                    if (isCollected) return null;
+                                    return (
+                                        <motion.button
+                                            key={hs.id}
+                                            initial={{ scale: 0, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: isSubtle && !isDiscovered ? 0.3 : 1 }}
+                                            whileHover={{ scale: 1.2, opacity: 1 }}
+                                            onClick={() => handleHotspotInteraction(hs)}
+                                            className="absolute w-8 h-8 -ml-4 -mt-4 flex items-center justify-center pointer-events-auto group/hs"
+                                            style={{ left: `${hs.x}%`, top: `${hs.y}%` }}
+                                        >
+                                            {(!isSubtle || isDiscovered) && (
+                                                <div className="absolute inset-0 bg-cyan-500/30 rounded-full animate-ping" />
+                                            )}
+                                            <div className={`relative w-3 h-3 rounded-full border-2 border-white shadow-[0_0_10px_rgba(6,182,212,0.8)] ${isSubtle && !isDiscovered ? 'bg-white/20' : 'bg-cyan-400'
+                                                }`} />
+
+                                            {/* Tooltip on Hover */}
+                                            <div className="absolute bottom-full mb-2 bg-black/80 backdrop-blur-md px-2 py-1 rounded text-[10px] text-cyan-100 whitespace-nowrap opacity-0 group-hover/hs:opacity-100 transition-opacity border border-white/10 uppercase tracking-widest pointer-events-none">
+                                                {hs.interactionType}: {hs.label}
+                                            </div>
+                                        </motion.button>
+                                    );
+                                })}
+                            </div>
 
                             {/* Scene HUD */}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
@@ -317,7 +544,17 @@ export default function GamePage() {
                             </Card>
                             {currentPuzzle.itemImagePrompt && (
                                 <div className="w-32 aspect-square rounded-xl overflow-hidden border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)] cursor-zoom-in hover:scale-105 transition-transform bg-zinc-900 shrink-0">
-                                    <img src={getImageUrl(currentPuzzle.itemImagePrompt)} alt="Target Item" className="w-full h-full object-cover" />
+                                    <img
+                                        src={getImageUrl(currentPuzzle.itemImagePrompt, 'item', currentPuzzleIndex)}
+                                        alt="Target Item"
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            const target = e.target as HTMLImageElement;
+                                            if (!target.src.includes('pollinations.ai')) {
+                                                target.src = `https://pollinations.ai/p/${encodeURIComponent(currentPuzzle.itemImagePrompt || '')}?width=1280&height=720&seed=${roomId}&nologo=true`;
+                                            }
+                                        }}
+                                    />
                                 </div>
                             )}
                         </div>
@@ -390,6 +627,75 @@ export default function GamePage() {
                     </motion.div>
                 </div>
             )}
+
+            {/* Hotspot Inspection Modal */}
+            <AnimatePresence>
+                {selectedHotspot && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm"
+                        onClick={() => setSelectedHotspot(null)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, y: 20 }}
+                            className="bg-zinc-900 border border-cyan-500/30 rounded-2xl overflow-hidden max-w-2xl w-full shadow-[0_0_50px_rgba(6,182,212,0.2)]"
+                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                        >
+                            <div className="relative aspect-video bg-black">
+                                {selectedHotspot.imagePrompt ? (
+                                    <img
+                                        src={getImageUrl(selectedHotspot.imagePrompt, 'hotspot', parseInt(selectedHotspot.id.split('_')[1]))}
+                                        alt={selectedHotspot.label}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            const target = e.target as HTMLImageElement;
+                                            if (selectedHotspot.imagePrompt && !target.src.includes('pollinations.ai')) {
+                                                target.src = `https://pollinations.ai/p/${encodeURIComponent(selectedHotspot.imagePrompt)}?width=1280&height=720&seed=${roomId}&nologo=true`;
+                                            }
+                                        }}
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-zinc-700">
+                                        <HelpCircle className="w-12 h-12" />
+                                    </div>
+                                )}
+                                <div className="absolute top-4 right-4">
+                                    <Button variant="ghost" size="icon" onClick={() => setSelectedHotspot(null)} className="text-white hover:bg-white/10">
+                                        <Lock className="w-5 h-5 rotate-45" />
+                                    </Button>
+                                </div>
+                            </div>
+                            <div className="p-8">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-500 bg-cyan-500/10 px-2 py-0.5 rounded">
+                                        {selectedHotspot.interactionType}
+                                    </span>
+                                    <h3 className="text-xl font-bold text-white uppercase tracking-wider">{selectedHotspot.label}</h3>
+                                </div>
+                                <p className="text-zinc-400 leading-relaxed italic border-l-2 border-cyan-500/30 pl-4 py-1">
+                                    &quot;{selectedHotspot.description}&quot;
+                                </p>
+                                <div className="mt-8 flex justify-end">
+                                    <Button onClick={() => setSelectedHotspot(null)} className="bg-cyan-600 hover:bg-cyan-500 text-black font-bold uppercase tracking-widest text-xs px-8">
+                                        Close Data Node
+                                    </Button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <UpgradeModal
+                isOpen={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
+                tier={usageLimitInfo.tier}
+                limit={usageLimitInfo.limit}
+            />
         </div>
     );
 }

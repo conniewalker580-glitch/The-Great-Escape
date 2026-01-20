@@ -9,13 +9,13 @@ import { useState } from "react";
 export default function PricingPage() {
     const [loading, setLoading] = useState<string | null>(null);
 
-    const handleCheckout = async (priceId: string) => {
-        setLoading(priceId);
+    const handleCheckout = async (tier: 'explorer' | 'adventurer' | 'master') => {
+        setLoading(tier);
         try {
             const res = await fetch("/api/checkout", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ priceId }),
+                body: JSON.stringify({ tier }),
             });
             const { url } = await res.json();
             window.location.href = url;
@@ -47,12 +47,12 @@ export default function PricingPage() {
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl z-10">
-                {/* FREE EXPLORER */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-7xl z-10">
+                {/* FREE */}
                 <Card className="border-white/10 relative bg-black/40 backdrop-blur-md">
                     <CardHeader>
-                        <CardTitle>Free Explorer</CardTitle>
-                        <CardDescription>For the casual detective.</CardDescription>
+                        <CardTitle>Free</CardTitle>
+                        <CardDescription>Casual detective.</CardDescription>
                         <div className="mt-4">
                             <span className="text-4xl font-bold text-white">$0</span>
                             <span className="text-muted-foreground">/mo</span>
@@ -60,11 +60,10 @@ export default function PricingPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <ul className="space-y-3 text-sm">
-                            <li className="flex gap-2"><Check className="w-4 h-4 text-cyan-500" /> Rooms 1-3 Access</li>
-                            <li className="flex gap-2"><Check className="w-4 h-4 text-cyan-500" /> Limited Hints (3/day)</li>
+                            <li className="flex gap-2"><Check className="w-4 h-4 text-cyan-500" /> 3 Rooms / Month</li>
+                            <li className="flex gap-2"><Check className="w-4 h-4 text-cyan-500" /> Standard Tutorials</li>
                             <li className="flex gap-2"><Check className="w-4 h-4 text-cyan-500" /> Daily Reward Wheel</li>
                             <li className="flex gap-2 text-muted-foreground"><X className="w-4 h-4" /> Ads between levels</li>
-                            <li className="flex gap-2 text-muted-foreground"><X className="w-4 h-4" /> No Elite Rooms</li>
                         </ul>
                     </CardContent>
                     <CardFooter>
@@ -72,69 +71,98 @@ export default function PricingPage() {
                     </CardFooter>
                 </Card>
 
-                {/* ESCAPE PRO */}
+                {/* EXPLORER */}
+                <Card className="border-white/10 relative bg-black/40 backdrop-blur-md">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Zap className="w-5 h-5 text-yellow-500" /> Explorer
+                        </CardTitle>
+                        <CardDescription>Growing interest.</CardDescription>
+                        <div className="mt-4">
+                            <span className="text-4xl font-bold text-white">$6.99</span>
+                            <span className="text-muted-foreground">/mo</span>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <ul className="space-y-3 text-sm">
+                            <li className="flex gap-2"><Check className="w-4 h-4 text-cyan-500" /> 10 Rooms / Month</li>
+                            <li className="flex gap-2"><Check className="w-4 h-4 text-cyan-500" /> No Ads</li>
+                            <li className="flex gap-2"><Check className="w-4 h-4 text-cyan-500" /> Priority Support</li>
+                            <li className="flex gap-2"><Check className="w-4 h-4 text-cyan-500" /> Alternate Endings</li>
+                        </ul>
+                    </CardContent>
+                    <CardFooter>
+                        <Button
+                            className="w-full"
+                            onClick={() => handleCheckout('explorer')}
+                            disabled={loading === 'explorer'}
+                        >
+                            {loading === 'explorer' ? 'Processing...' : 'Go Explorer'}
+                        </Button>
+                    </CardFooter>
+                </Card>
+
+                {/* ADVENTURER - Most Popular */}
                 <Card className="border-cyan-500/50 relative bg-cyan-900/10 backdrop-blur-md scale-105 z-10 shadow-2xl shadow-cyan-500/20">
                     <div className="absolute -top-4 left-0 right-0 flex justify-center">
                         <span className="bg-cyan-500 text-black text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Most Popular</span>
                     </div>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <Zap className="w-5 h-5 text-cyan-500" /> Escape Pro
+                            <Zap className="w-5 h-5 text-cyan-500" /> Adventurer
                         </CardTitle>
-                        <CardDescription>For the dedicated solver.</CardDescription>
+                        <CardDescription>Dedicated solver.</CardDescription>
                         <div className="mt-4">
-                            <span className="text-4xl font-bold text-cyan-400">$6.99</span>
+                            <span className="text-4xl font-bold text-cyan-400">$12.99</span>
                             <span className="text-muted-foreground">/mo</span>
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <ul className="space-y-3 text-sm">
-                            <li className="flex gap-2"><Check className="w-4 h-4 text-cyan-500" /> <strong>All Standard Rooms</strong></li>
-                            <li className="flex gap-2"><Check className="w-4 h-4 text-cyan-500" /> <strong>Unlimited Hints</strong></li>
-                            <li className="flex gap-2"><Check className="w-4 h-4 text-cyan-500" /> No Ads</li>
-                            <li className="flex gap-2"><Check className="w-4 h-4 text-cyan-500" /> Alternate Endings</li>
+                            <li className="flex gap-2"><Check className="w-4 h-4 text-cyan-500" /> 100 Rooms / Month</li>
+                            <li className="flex gap-2"><Check className="w-4 h-4 text-cyan-500" /> Unlimited Hints</li>
+                            <li className="flex gap-2"><Check className="w-4 h-4 text-cyan-500" /> Elite Room Previews</li>
                             <li className="flex gap-2"><Check className="w-4 h-4 text-cyan-500" /> Daily Bonus Rewards</li>
                         </ul>
                     </CardContent>
                     <CardFooter>
                         <Button
-                            className="w-full text-lg bg-cyan-600 hover:bg-cyan-500"
-                            onClick={() => handleCheckout("price_pro")} // Replace with real Price ID
-                            disabled={loading === 'price_pro'}
+                            className="w-full bg-cyan-600 hover:bg-cyan-500 text-black font-bold"
+                            onClick={() => handleCheckout('adventurer')}
+                            disabled={loading === 'adventurer'}
                         >
-                            {loading === 'price_pro' ? 'Processing...' : 'Upgrade to Pro'}
+                            {loading === 'adventurer' ? 'Processing...' : 'Get Adventurer'}
                         </Button>
                     </CardFooter>
                 </Card>
 
-                {/* MASTERMIND ELITE */}
+                {/* MASTER ESCAPE */}
                 <Card className="border-purple-500/50 relative bg-purple-900/10 backdrop-blur-md">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-purple-400">
-                            <Crown className="w-5 h-5 fill-current" /> Mastermind
+                            <Crown className="w-5 h-5 fill-current" /> Master Escape
                         </CardTitle>
-                        <CardDescription>For the ultimate completionist.</CardDescription>
+                        <CardDescription>Absolute completionist.</CardDescription>
                         <div className="mt-4">
-                            <span className="text-4xl font-bold text-purple-400">$12.99</span>
+                            <span className="text-4xl font-bold text-purple-400">$29.99</span>
                             <span className="text-muted-foreground">/mo</span>
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <ul className="space-y-3 text-sm">
-                            <li className="flex gap-2"><Check className="w-4 h-4 text-purple-400" /> <strong>Everything in Pro</strong></li>
-                            <li className="flex gap-2"><Check className="w-4 h-4 text-purple-400" /> <strong>Elite-only Rooms</strong></li>
-                            <li className="flex gap-2"><Check className="w-4 h-4 text-purple-400" /> Early Access</li>
+                            <li className="flex gap-2"><Check className="w-4 h-4 text-purple-400" /> Unlimited Rooms</li>
                             <li className="flex gap-2"><Check className="w-4 h-4 text-purple-400" /> Exclusive Cosmetics</li>
                             <li className="flex gap-2"><Check className="w-4 h-4 text-purple-400" /> Weekly Challenges</li>
+                            <li className="flex gap-2"><Check className="w-4 h-4 text-purple-400" /> Early Access</li>
                         </ul>
                     </CardContent>
                     <CardFooter>
                         <Button
                             className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white border-0"
-                            onClick={() => handleCheckout("price_elite")} // Replace with real Price ID
-                            disabled={loading === 'price_elite'}
+                            onClick={() => handleCheckout('master')}
+                            disabled={loading === 'master'}
                         >
-                            {loading === 'price_elite' ? 'Processing...' : 'Join the Elite'}
+                            {loading === 'master' ? 'Processing...' : 'Become Master'}
                         </Button>
                     </CardFooter>
                 </Card>

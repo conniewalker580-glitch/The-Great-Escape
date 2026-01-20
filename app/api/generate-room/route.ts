@@ -13,15 +13,19 @@ export async function POST(req: NextRequest) {
         user = db.createUser(userId);
     }
 
-    // Tier Logic
-    const currentTier = user.tier || 'free';
-    const limit = currentTier === 'elite' ? 999 : (currentTier === 'pro' ? 5 : 0);
-    const hasCredits = user.credits > 0;
+    const { getTierLimit } = await import("@/lib/subscription");
+    const { resetIfNewMonth } = await import("@/lib/usageReset");
 
-    // Strict Limit Check
-    if ((user.generatedCount || 0) >= limit && !hasCredits) {
+    resetIfNewMonth(userId);
+    user = db.getUser(userId) || user;
+
+    const currentTier = user.tier;
+    const limit = getTierLimit(currentTier);
+
+    // Strict Limit Check using roomsPlayed as general usage meter
+    if (user.roomsPlayed >= limit) {
         return NextResponse.json({
-            error: `Monthly generation limit reached for ${currentTier} tier. Upgrade to Elite for unlimited access.`
+            error: `Monthly limit reached for ${currentTier} plan. Upgrade to unlock more simulations.`
         }, { status: 403 });
     }
 
@@ -44,17 +48,17 @@ export async function POST(req: NextRequest) {
         const newRoom = {
             id: randomUUID(),
             ownerId: userId,
-            theme,
+            theme: theme || "Space Mystery",
             data: roomData,
             createdAt: new Date().toISOString()
         };
 
         db.addGeneratedRoom(newRoom);
 
-        // Increment Count
+        // Increment usage
         db.updateUser(userId, {
             generatedCount: (user.generatedCount || 0) + 1,
-            credits: hasCredits ? user.credits - 1 : user.credits
+            roomsPlayed: (user.roomsPlayed || 0) + 1
         });
 
         return NextResponse.json({ success: true, room: newRoom });

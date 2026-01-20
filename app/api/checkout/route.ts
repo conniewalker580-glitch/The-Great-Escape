@@ -10,13 +10,19 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { priceId } = await req.json();
+    const { tier } = await req.json(); // 'explorer' | 'adventurer' | 'master'
+
+    const priceId = process.env[`NEXT_PUBLIC_STRIPE_PRICE_${tier.toUpperCase()}`];
+
+    if (!priceId) {
+        return NextResponse.json({ error: "Invalid tier or missing configuration" }, { status: 400 });
+    }
 
     const session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
         line_items: [
             {
-                price: priceId, // e.g., 'price_1...' from environment or client
+                price: priceId,
                 quantity: 1,
             },
         ],
@@ -26,7 +32,7 @@ export async function POST(req: NextRequest) {
         customer_email: user.emailAddresses[0].emailAddress,
         metadata: {
             userId: userId,
-            tier: priceId === "price_pro" ? "pro" : "elite" // Mapping logic to be refined with real IDs
+            tier: tier
         },
     });
 

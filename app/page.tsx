@@ -12,7 +12,7 @@ export default function Home() {
     <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden stars">
       {/* Background Elements */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-900/10 via-background to-background z-0" />
-      <div className="absolute top-0 left-0 w-full h-full bg-[url('/grid.svg')] opacity-5 z-0 pointer-events-none" />
+      <div className="absolute top-0 left-0 w-full h-full bg-[url('/grid.svg')] bg-cover bg-center opacity-5 z-0 pointer-events-none" />
 
       {/* Hero Content */}
       <motion.div

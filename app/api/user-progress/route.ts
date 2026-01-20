@@ -9,7 +9,9 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const start = Date.now();
+    const { resetIfNewMonth } = await import("@/lib/usageReset");
+    resetIfNewMonth(userId);
+
     let user = db.getUser(userId);
     const generatedRooms = db.getGeneratedRooms(userId);
 

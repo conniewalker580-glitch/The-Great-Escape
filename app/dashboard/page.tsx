@@ -4,17 +4,28 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { ROOMS } from "@/lib/game-data";
-import { Lock, Play, Rocket, Share2, Plus, LayoutTemplate, User, Zap, Loader2 } from "lucide-react";
+import { Lock, Play, Rocket, Share2, Plus, LayoutTemplate, Zap, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { UserButton, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
+interface DashboardUser {
+    tier: string;
+    // Add other fields if needed for display
+}
+
+interface DashboardRoom {
+    id: string;
+    theme: string;
+    // Add other fields as needed
+}
+
 export default function DashboardPage() {
     const { user, isLoaded } = useUser();
     const router = useRouter();
-    const [userData, setUserData] = useState<any>(null);
-    const [generatedRooms, setGeneratedRooms] = useState<any[]>([]);
+    const [userData, setUserData] = useState<DashboardUser | null>(null);
+    const [generatedRooms, setGeneratedRooms] = useState<DashboardRoom[]>([]);
     const [selectedTheme, setSelectedTheme] = useState("Space Horror");
     const [selectedDifficulty, setSelectedDifficulty] = useState("Medium");
     const [isGenerating, setIsGenerating] = useState(false);
@@ -59,7 +70,7 @@ export default function DashboardPage() {
 
     return (
         <div className="min-h-screen p-8 pt-20 max-w-7xl mx-auto relative">
-            <div className="absolute top-0 left-0 w-full h-full bg-[url('/grid.svg')] opacity-5 z-0 pointer-events-none fixed" />
+            <div className="absolute top-0 left-0 w-full h-full bg-[url('/grid.svg')] bg-cover bg-center opacity-5 z-0 pointer-events-none fixed" />
 
             {/* HUD Header */}
             <div className="flex justify-between items-end mb-12 relative z-10 border-b border-white/10 pb-6">
@@ -147,10 +158,13 @@ export default function DashboardPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {ROOMS.map((room, i) => (
                             <motion.div key={room.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
-                                <Card className={`border-white/5 bg-gray-900/40 backdrop-blur-md hover:border-cyan-500/50 transition-all duration-300 group ${room.isPremium ? 'border-amber-500/10' : ''}`}>
-                                    <div className="h-32 bg-black/50 relative overflow-hidden border-b border-white/5">
-                                        {/* Mock Image Placeholder */}
-                                        <div className={`absolute inset-0 bg-gradient-to-t ${room.isPremium ? 'from-amber-900/20' : 'from-cyan-900/20'} to-transparent`} />
+                                <Card className={`border-white/5 bg-gray-900/40 backdrop-blur-md hover:border-cyan-500/50 transition-all duration-300 group overflow-hidden ${room.isPremium ? 'border-amber-500/10' : ''}`}>
+                                    <div className="h-48 bg-black/50 relative overflow-hidden border-b border-white/5">
+                                        <motion.div
+                                            className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
+                                            style={{ backgroundImage: `url(https://pollinations.ai/p/${encodeURIComponent(room.imagePrompt)}?width=600&height=400&seed=${room.id}&nologo=true)` }}
+                                        />
+                                        <div className={`absolute inset-0 bg-gradient-to-t ${room.isPremium ? 'from-amber-900/40' : 'from-cyan-900/40'} to-transparent opacity-60`} />
                                         <div className="absolute bottom-2 right-2 flex gap-2">
                                             <span className="text-[10px] font-mono bg-black/80 px-2 py-1 rounded text-white/50 border border-white/10">{room.duration}</span>
                                             <span className="text-[10px] font-mono bg-black/80 px-2 py-1 rounded text-white/50 border border-white/10">{room.difficulty}</span>

@@ -3,6 +3,7 @@ import { ClerkProvider } from '@clerk/nextjs'
 import { dark } from '@clerk/themes'
 import { Inter, Space_Mono } from "next/font/google";
 import "./globals.css";
+import { AccessibilityProvider } from '@/lib/accessibility-context';
 
 const inter = Inter({ subsets: ["latin"] });
 const spaceMono = Space_Mono({
@@ -36,7 +37,12 @@ export default function RootLayout({
         <body
           className={`${inter.className} ${spaceMono.variable} antialiased min-h-screen bg-background text-foreground`}
         >
-          {children}
+          <a href="#main-content" className="skip-to-content">Skip to main content</a>
+          <AccessibilityProvider>
+            <main id="main-content">
+              {children}
+            </main>
+          </AccessibilityProvider>
         </body>
       </html>
     </ClerkProvider>

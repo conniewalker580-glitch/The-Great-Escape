@@ -1,6 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 
+import { Room } from './game-data';
+
 const DB_PATH = path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DB_PATH, 'db.json');
 
@@ -12,18 +14,21 @@ type RoomResult = {
 
 type User = {
     id: string;
-    tier: 'free' | 'pro' | 'elite';
+    tier: 'free' | 'explorer' | 'adventurer' | 'master';
     credits: number;
     generatedCount: number;
     unlockedRooms: string[];
     completedHistory: RoomResult[]; // Track performance
+    roomsPlayed: number; // rooms played in current month
+    usageMonth: string; // e.g. "2026-01"
+    stripeCustomerId?: string;
 };
 
 type GeneratedRoom = {
     id: string;
     ownerId: string;
     theme: string;
-    data: any; // Full room object
+    data: Room; // Full room object
     createdAt: string;
 };
 
@@ -56,13 +61,17 @@ export const db = {
     createUser: (userId: string) => {
         const data = readDB();
         if (!data.users[userId]) {
+            const now = new Date();
+            const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
             data.users[userId] = {
                 id: userId,
-                tier: 'elite',
-                credits: 999,
+                tier: 'free',
+                credits: 0,
                 generatedCount: 0,
                 unlockedRooms: ['room-1', 'room-2', 'room-3'],
-                completedHistory: []
+                completedHistory: [],
+                roomsPlayed: 0,
+                usageMonth: month
             };
             writeDB(data);
         }
