@@ -50,23 +50,32 @@ export default function GamePage() {
     }, []);
 
     const getImageUrl = (prompt: string, type: 'scene' | 'hotspot' | 'item' | 'panorama' = 'scene', index?: number) => {
-        // Try panoramic image first if available
+        // Always use AI-generated images for consistent, high-quality visuals
+        // This ensures all rooms have proper visuals in both development and production
+
         if (type === 'panorama') {
-            return `/rooms/${roomId}-panorama.webp`;
-        }
-        // Try local image first if it's a scene
-        if (type === 'scene' && typeof index === 'number') {
-            return `/rooms/${roomId}-${index}.webp`;
-        }
-        if (type === 'item') {
-            return `/rooms/${roomId}-item-${index || 0}.webp`;
-        }
-        if (type === 'hotspot') {
-            return `/rooms/${roomId}-hotspot-${index || 0}.webp`;
+            // Generate 360° equirectangular panorama
+            const panoramaPrompt = prompt || `${room?.imagePrompt || 'escape room'}, 360 degree equirectangular spherical panorama, high detailed 8k`;
+            return `https://pollinations.ai/p/${encodeURIComponent(panoramaPrompt)}?width=2048&height=1024&seed=${roomId}&nologo=true&model=flux`;
         }
 
-        // Fallback to Pollinations AI
-        return `https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=1280&height=720&seed=${roomId}&nologo=true`;
+        if (type === 'scene') {
+            // Generate scene view
+            return `https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=1280&height=720&seed=${roomId}-${index || 0}&nologo=true&model=flux`;
+        }
+
+        if (type === 'item') {
+            // Generate puzzle item close-up
+            return `https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=800&height=800&seed=${roomId}-item-${index || 0}&nologo=true&model=flux`;
+        }
+
+        if (type === 'hotspot') {
+            // Generate hotspot/interactive object image
+            return `https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=1280&height=720&seed=${roomId}-hotspot-${index || 0}&nologo=true&model=flux`;
+        }
+
+        // Default fallback
+        return `https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=1280&height=720&seed=${roomId}&nologo=true&model=flux`;
     };
 
     // Reset puzzle-specific state when moving to next puzzle
@@ -474,12 +483,6 @@ export default function GamePage() {
                                         src={getImageUrl(currentPuzzle.itemImagePrompt, 'item', currentPuzzleIndex)}
                                         alt="Target Item"
                                         className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                            const target = e.target as HTMLImageElement;
-                                            if (!target.src.includes('pollinations.ai')) {
-                                                target.src = `https://pollinations.ai/p/${encodeURIComponent(currentPuzzle.itemImagePrompt || '')}?width=1280&height=720&seed=${roomId}&nologo=true`;
-                                            }
-                                        }}
                                     />
                                 </div>
                             )}
@@ -579,12 +582,6 @@ export default function GamePage() {
                                             src={getImageUrl(selectedHotspot.imagePrompt, 'hotspot', parseInt(selectedHotspot.id.split('_')[1]))}
                                             alt={selectedHotspot.label}
                                             className="w-full h-full object-cover"
-                                            onError={(e) => {
-                                                const target = e.target as HTMLImageElement;
-                                                if (selectedHotspot.imagePrompt && !target.src.includes('pollinations.ai')) {
-                                                    target.src = `https://pollinations.ai/p/${encodeURIComponent(selectedHotspot.imagePrompt)}?width=1280&height=720&seed=${roomId}&nologo=true`;
-                                                }
-                                            }}
                                         />
                                     </>
                                 ) : (
