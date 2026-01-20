@@ -34,7 +34,7 @@ export type Room = {
     difficulty: 'Easy' | 'Medium' | 'Hard' | 'Expert';
     duration: string;
     description: string;
-    theme: 'Mystery' | 'Sci-Fi' | 'Horror' | 'Ancient' | 'Abstract' | 'Cozy' | 'Nostalgic' | 'Coastal' | 'Industrial' | 'Steampunk' | 'Noir' | 'Astronomy' | 'Mythic' | 'Time Travel';
+    theme: 'Mystery' | 'Sci-Fi' | 'Horror' | 'Ancient' | 'Abstract' | 'Cozy' | 'Nostalgic' | 'Coastal' | 'Industrial' | 'Steampunk' | 'Noir' | 'Astronomy' | 'Mythic' | 'Time Travel' | 'Cyberpunk' | 'Space' | 'Fantasy' | 'Historical';
     puzzles: Puzzle[];
     imagePrompt: string;
     multiverseScenes?: string[]; // 4 views: Front, Left, Right, Back (will upgrade to 360° panorama)
