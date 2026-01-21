@@ -21,7 +21,7 @@ app.prepare().then(() => {
 
     // 3. Next.js Request Handling
     // All other requests are handled by Next.js
-    server.all('*all', (req, res) => {
+    server.all(/(.*)/, (req, res) => {
         return handle(req, res);
     });
 

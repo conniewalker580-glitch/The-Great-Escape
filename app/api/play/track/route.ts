@@ -1,42 +1,62 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { db } from "@/lib/db";
+import { auth } from "@/lib/firebase-admin";
+import { getUser, getSubscription, resetMonthlyUsage } from "@/lib/database";
 import { getTierLimit } from "@/lib/subscription";
-import { resetIfNewMonth } from "@/lib/usageReset";
 
 export async function POST(req: NextRequest) {
-    const { userId: authUserId } = await auth();
+    const { userId: authUserId } = await auth(req);
     if (!authUserId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await req.json(); // Consume body but ignore for now
+    try {
+        await req.json(); // Consume body
 
-    // Ensure monthly reset
-    resetIfNewMonth(authUserId);
+        // Check if we need to reset monthly usage
+        const today = new Date();
+        const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
-    const user = db.getUser(authUserId);
-    if (!user) {
-        return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
+        // Get user from database
+        const user = await getUser(authUserId);
+        if (!user) {
+            return NextResponse.json({ error: "User not found" }, { status: 404 });
+        }
 
-    const limit = getTierLimit(user.tier);
+        // Reset if it's a new month
+        const lastReset = new Date(user.last_reset_date);
+        if (lastReset < firstOfMonth) {
+            await resetMonthlyUsage();
+        }
 
-    if (user.roomsPlayed >= limit) {
+        // Get current subscription to determine tier
+        const subscription = await getSubscription(authUserId);
+        const currentTier = subscription?.tier || user.tier || 'free';
+
+        // Get tier limit
+        const limit = getTierLimit(currentTier);
+
+        // Check if user has exceeded limit
+        if (user.rooms_played_this_month >= limit) {
+            return NextResponse.json({
+                allowed: false,
+                limit,
+                tier: currentTier,
+                used: user.rooms_played_this_month
+            }, { status: 403 });
+        }
+
+        // Allow access
         return NextResponse.json({
-            allowed: false,
-            limit,
-            tier: user.tier
-        }, { status: 403 });
+            allowed: true,
+            remaining: limit === Infinity ? 'Unlimited' : limit - user.rooms_played_this_month,
+            tier: currentTier,
+            used: user.rooms_played_this_month
+        });
+    } catch (error) {
+        console.error('Error tracking play:', error);
+        return NextResponse.json(
+            { error: "Failed to track usage" },
+            { status: 500 }
+        );
     }
-
-    // Increment usage
-    db.updateUser(authUserId, {
-        roomsPlayed: user.roomsPlayed + 1
-    });
-
-    return NextResponse.json({
-        allowed: true,
-        remaining: limit === Infinity ? 'Unlimited' : limit - (user.roomsPlayed + 1)
-    });
 }

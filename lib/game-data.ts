@@ -1,5 +1,8 @@
 import { InteractionState, Hotspot, Puzzle, Room } from "./types";
 import { extraRooms } from "./extra-rooms";
+import { rooms31to50 } from "./rooms-31-50";
+import { rooms51to75 } from "./rooms-51-75";
+import { rooms76to100 } from "./rooms-76-100";
 
 export type { InteractionState, Hotspot, Puzzle, Room };
 
@@ -881,5 +884,8 @@ export const ROOMS: Room[] = [
             }
         ]
     },
-    ...extraRooms
+    ...extraRooms,
+    ...rooms31to50,
+    ...rooms51to75,
+    ...rooms76to100
 ];

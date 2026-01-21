@@ -1,0 +1,30 @@
+[
+  {
+    "tier": "explorer",
+    "productId": "prod_TpSb1QsIGHU0Ed",
+    "priceId": "price_1SrngOKFfC6PSAmFlINcTi7e",
+    "price": 699,
+    "rooms": 10
+  },
+  {
+    "tier": "adventurer",
+    "productId": "prod_TpSbRsBr1OCwWS",
+    "priceId": "price_1SrngPKFfC6PSAmF0EMrpBFM",
+    "price": 1299,
+    "rooms": 100
+  },
+  {
+    "tier": "elite",
+    "productId": "prod_TpSbFnPtP1rlrT",
+    "priceId": "price_1SrngPKFfC6PSAmFfUZKvRgc",
+    "price": 1999,
+    "rooms": 200
+  },
+  {
+    "tier": "master",
+    "productId": "prod_TpSbGZCP12Mxiz",
+    "priceId": "price_1SrngQKFfC6PSAmFYeShg4Qu",
+    "price": 2999,
+    "rooms": "unlimited"
+  }
+]

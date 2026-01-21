@@ -1,0 +1,84 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user owns the resource
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      // Users can read their own data
+      allow read: if isOwner(userId);
+      // Users can create their own profile
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      // Users can update their own profile
+      allow update: if isOwner(userId);
+      // No deletes allowed
+      allow delete: if false;
+    }
+    
+    // Escape Rooms collection (public read, admin write)
+    match /escapeRooms/{roomId} {
+      // Anyone can read escape rooms
+      allow read: if true;
+      // Only authenticated users can create/update (you may want to restrict this further)
+      allow create, update: if isAuthenticated();
+      allow delete: if false;
+    }
+    
+    // Room Scenes collection (public read, admin write)
+    match /roomScenes/{sceneId} {
+      // Anyone can read room scenes
+      allow read: if true;
+      // Only authenticated users can create/update
+      allow create, update: if isAuthenticated();
+      allow delete: if false;
+    }
+    
+    // Clues collection (public read, admin write)
+    match /clues/{clueId} {
+      // Anyone can read clues
+      allow read: if true;
+      // Only authenticated users can create/update
+      allow create, update: if isAuthenticated();
+      allow delete: if false;
+    }
+    
+    // Puzzles collection (protected - no direct access to answers)
+    match /puzzles/{puzzleId} {
+      // Users can read puzzle data but correctAnswer should be validated server-side
+      allow read: if isAuthenticated();
+      // Only authenticated users can create/update
+      allow create, update: if isAuthenticated();
+      allow delete: if false;
+    }
+    
+    // User Sessions collection
+    match /userSessions/{sessionId} {
+      // Users can read their own sessions
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      // Users can create their own sessions
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      // Users can update their own sessions
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow delete: if false;
+    }
+    
+    // Puzzle Attempts collection
+    match /puzzleAttempts/{attemptId} {
+      // Users can read their own attempts (via session ownership)
+      allow read: if isAuthenticated();
+      // Users can create attempts for their own sessions
+      allow create: if isAuthenticated();
+      // No updates or deletes
+      allow update, delete: if false;
+    }
+  }
+}

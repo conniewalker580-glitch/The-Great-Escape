@@ -2,7 +2,7 @@ import { Room } from "./types";
 
 export const extraRooms: Room[] = [
     {
-        id: "room-11",
+        id: "room-21",
         title: "Neon City Heights",
         difficulty: "Medium",
         duration: "25 mins",
@@ -44,7 +44,7 @@ export const extraRooms: Room[] = [
         ]
     },
     {
-        id: "room-12",
+        id: "room-22",
         title: "The Steam Engine",
         difficulty: "Medium",
         duration: "30 mins",
@@ -86,7 +86,7 @@ export const extraRooms: Room[] = [
         ]
     },
     {
-        id: "room-13",
+        id: "room-23",
         title: "Deep Blue Lab",
         difficulty: "Hard",
         duration: "45 mins",
@@ -129,7 +129,7 @@ export const extraRooms: Room[] = [
         ]
     },
     {
-        id: "room-14",
+        id: "room-24",
         title: "Crimson Manor",
         difficulty: "Easy",
         duration: "20 mins",
@@ -172,7 +172,7 @@ export const extraRooms: Room[] = [
         ]
     },
     {
-        id: "room-15",
+        id: "room-25",
         title: "Mars Outpost Alpha",
         difficulty: "Hard",
         duration: "35 mins",
@@ -207,7 +207,7 @@ export const extraRooms: Room[] = [
         ]
     },
     {
-        id: "room-16",
+        id: "room-26",
         title: "Pharaoh's Tomb",
         difficulty: "Medium",
         duration: "30 mins",
@@ -249,7 +249,7 @@ export const extraRooms: Room[] = [
         ]
     },
     {
-        id: "room-17",
+        id: "room-27",
         title: "Noir Office",
         difficulty: "Medium",
         duration: "30 mins",
@@ -291,7 +291,7 @@ export const extraRooms: Room[] = [
         ]
     },
     {
-        id: "room-18",
+        id: "room-28",
         title: "Sugar Rush Factory",
         difficulty: "Easy",
         duration: "25 mins",
@@ -327,7 +327,7 @@ export const extraRooms: Room[] = [
         ]
     },
     {
-        id: "room-19",
+        id: "room-29",
         title: "Viking Hall",
         difficulty: "Medium",
         duration: "30 mins",
@@ -362,7 +362,7 @@ export const extraRooms: Room[] = [
         ]
     },
     {
-        id: "room-20",
+        id: "room-30",
         title: "Space Station Zero",
         difficulty: "Expert",
         duration: "50 mins",

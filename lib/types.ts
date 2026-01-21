@@ -39,7 +39,29 @@ export type Room = {
     imagePrompt: string;
     multiverseScenes?: string[]; // 4 views: Front, Left, Right, Back (will upgrade to 360° panorama)
     panoramicImage?: string; // 360-degree panoramic image prompt
-    hotspots?: Record<number, Hotspot[]>; // Key: Scene index (0-3), Value: Hotspots in that scene
+    scenes?: Array<{
+        id: string;
+        name: string;
+        description: string;
+        imagePrompt: string;
+    }>; // Enhanced panoramic scenes
+    hotspots?: Array<{
+        id: string;
+        name?: string; // Optional name for display
+        label?: string; // Alternative to name
+        x: number;
+        y: number;
+        description: string;
+        imagePrompt?: string;
+        interactionType?: 'inspect' | 'open' | 'reveal' | 'pickup' | 'examine' | 'rotate';
+        isSubtle?: boolean;
+        requiresItem?: string;
+        revealsItem?: string;
+        openStateImage?: string;
+        closedStateImage?: string;
+        angle?: number;
+        elevation?: number;
+    }> | Record<number, Hotspot[]>; // Support both simple array and scene-indexed
     isPremium: boolean;
     atmosphereEffects?: {
         fog?: boolean;

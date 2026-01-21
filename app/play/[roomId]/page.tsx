@@ -14,6 +14,7 @@ import { useUser } from "@clerk/nextjs";
 import { ACHIEVEMENT_BADGES, checkAchievement, calculateRank } from "@/lib/rewards";
 import { UpgradeModal } from "@/components/ui/upgrade-modal";
 import { PanoramicViewer } from "@/components/PanoramicViewer";
+import { triggerBalloons, triggerGlowEffect, triggerParticleBurst } from "@/lib/visual-effects";
 
 export default function GamePage() {
     useUser();
@@ -43,6 +44,7 @@ export default function GamePage() {
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [usageLimitInfo, setUsageLimitInfo] = useState({ tier: 'free', limit: 3 });
     const [, startTransition] = useTransition();
+    const submitButtonRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
         startTransition(() => {
@@ -53,7 +55,7 @@ export default function GamePage() {
     // -------------------------------------------------------------------------
     // 🎨 IMAGE GENERATION SYSTEM (Production Robust)
     // -------------------------------------------------------------------------
-    const getImageUrl = (prompt: string, type: 'scene' | 'hotspot' | 'item' | 'panorama' = 'scene', index?: number) => {
+    const getImageUrl = (prompt: string | undefined, type: 'scene' | 'hotspot' | 'item' | 'panorama' = 'scene', index?: number) => {
         const baseUrl = "https://pollinations.ai/p/";
         const params = new URLSearchParams({
             nologo: 'true',
@@ -72,18 +74,21 @@ export default function GamePage() {
             return `${baseUrl}${encodeURIComponent(p)}?${params.toString()}`;
         }
 
+        // Default prompt for items/hotspots if missing
+        const p = prompt || 'mystery object detailed 8k';
+
         if (type === 'item') {
             params.append('width', '800');
             params.append('height', '800');
             params.append('seed', `${seedBase}_item_${index || 0}`);
-            return `${baseUrl}${encodeURIComponent(prompt)}?${params.toString()}`;
+            return `${baseUrl}${encodeURIComponent(p)}?${params.toString()}`;
         }
 
         // Hotspots (16:9)
         params.append('width', '1280');
         params.append('height', '720');
         params.append('seed', `${seedBase}_${type}_${index || 0}`);
-        return `${baseUrl}${encodeURIComponent(prompt)}?${params.toString()}`;
+        return `${baseUrl}${encodeURIComponent(p)}?${params.toString()}`;
     };
 
     // -------------------------------------------------------------------------
@@ -179,13 +184,29 @@ export default function GamePage() {
         if (validateAnswer(answerToCheck)) {
             setFeedback("success");
 
-            // 🎉 Success Effects
+            // 🎉 ENHANCED SUCCESS EFFECTS
+            // 1. Confetti
             confetti({
                 particleCount: 150,
                 spread: 80,
                 origin: { y: 0.6 },
                 colors: ['#06b6d4', '#a855f7', '#ffffff']
             });
+
+            // 2. Balloons
+            triggerBalloons();
+
+            // 3. Glow effect on submit button
+            triggerGlowEffect(submitButtonRef.current);
+
+            // 4. Particle burst at center
+            if (typeof window !== 'undefined') {
+                triggerParticleBurst(window.innerWidth / 2, window.innerHeight / 2);
+            }
+
+            // 5. Screen flash
+            document.body.classList.add('success-flash');
+            setTimeout(() => document.body.classList.remove('success-flash'), 500);
 
             // Is Game Over?
             const isLastPuzzle = currentPuzzleIndex === room.puzzles.length - 1;
@@ -326,18 +347,26 @@ export default function GamePage() {
                     <div className="absolute inset-0">
                         <PanoramicViewer
                             imageUrl={getImageUrl(room.panoramicImage, 'panorama')}
-                            hotspots={room.hotspots ? Object.entries(room.hotspots).flatMap(([idx, hotspots]) => {
+                            hotspots={room.hotspots ? (Array.isArray(room.hotspots) ? room.hotspots.map((hs: any) => ({
+                                id: hs.id,
+                                angle: (hs.x - 50) * 3.6,
+                                elevation: (50 - hs.y) * 0.6,
+                                label: hs.name || hs.label || hs.id,
+                                onClick: () => handleHotspotInteraction(hs),
+                                isSubtle: hs.isSubtle,
+                                isDiscovered: discoveredHotspots.has(hs.id)
+                            })) : Object.entries(room.hotspots).flatMap(([idx, hotspots]) => {
                                 const baseAngle = [0, 270, 90, 180][parseInt(idx)] || 0;
-                                return hotspots.map(hs => ({
+                                return (hotspots as any[]).map((hs: any) => ({
                                     id: hs.id,
                                     angle: (baseAngle + (hs.x - 50) * 0.8 + 360) % 360,
                                     elevation: (50 - hs.y) * 0.6,
-                                    label: hs.label,
+                                    label: hs.name || hs.label || hs.id,
                                     onClick: () => handleHotspotInteraction(hs),
                                     isSubtle: hs.isSubtle,
                                     isDiscovered: discoveredHotspots.has(hs.id)
                                 }));
-                            }) : []}
+                            })) : []}
                             effects={room.atmosphereEffects}
                         />
                     </div>
@@ -423,7 +452,7 @@ export default function GamePage() {
                                         className="w-full bg-black border border-zinc-700 rounded-lg p-4 text-white font-mono placeholder:text-zinc-700 focus:outline-none focus:border-cyan-500 transition-colors"
                                         autoFocus
                                     />
-                                    <Button onClick={() => handleInputSubmit()} className="w-full bg-cyan-600 hover:bg-cyan-500 text-black font-bold h-12 uppercase tracking-widest">
+                                    <Button ref={submitButtonRef} onClick={() => handleInputSubmit()} className="w-full bg-cyan-600 hover:bg-cyan-500 text-black font-bold h-12 uppercase tracking-widest">
                                         Submit Data
                                     </Button>
                                 </div>

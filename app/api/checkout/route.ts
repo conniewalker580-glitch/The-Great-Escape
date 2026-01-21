@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth, getCurrentUserInfo } from "@/lib/firebase-admin";
 
 export async function POST(req: NextRequest) {
-    const { userId } = await auth();
-    const user = await currentUser();
+    const { userId } = await auth(req);
+    const user = await getCurrentUserInfo(req);
 
     if (!userId || !user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { tier } = await req.json(); // 'explorer' | 'adventurer' | 'master'
+    const { tier } = await req.json(); // 'explorer' | 'adventurer' | 'elite' | 'master'
 
     const priceId = process.env[`NEXT_PUBLIC_STRIPE_PRICE_${tier.toUpperCase()}`];
 
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
         mode: "subscription",
         success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?success=true`,
         cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?canceled=true`,
-        customer_email: user.emailAddresses[0].emailAddress,
+        customer_email: user.email || undefined,
         metadata: {
             userId: userId,
             tier: tier

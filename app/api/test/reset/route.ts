@@ -1,12 +1,12 @@
-import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/firebase-admin";
 import fs from "fs";
 import path from "path";
 
-export async function POST() {
+export async function POST(req: NextRequest) {
     if (process.env.NODE_ENV !== 'development') return NextResponse.json({}, { status: 404 });
 
-    const { userId } = await auth();
+    const { userId } = await auth(req);
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     // Hard reset

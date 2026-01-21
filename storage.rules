@@ -1,0 +1,42 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Room images (panoramic views, thumbnails)
+    match /rooms/{allPaths=**} {
+      // Anyone can read room images
+      allow read: if true;
+      // Only authenticated users can upload
+      allow write: if isAuthenticated();
+    }
+    
+    // Clue images
+    match /clues/{allPaths=**} {
+      // Anyone can read clue images
+      allow read: if true;
+      // Only authenticated users can upload
+      allow write: if isAuthenticated();
+    }
+    
+    // User avatars
+    match /avatars/{userId}/{allPaths=**} {
+      // Anyone can read avatars
+      allow read: if true;
+      // Users can only upload their own avatar
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // General assets
+    match /assets/{allPaths=**} {
+      // Anyone can read assets
+      allow read: if true;
+      // Only authenticated users can upload
+      allow write: if isAuthenticated();
+    }
+  }
+}

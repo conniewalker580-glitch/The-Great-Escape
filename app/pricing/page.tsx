@@ -2,14 +2,14 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, X, Zap, Crown, MoveLeft } from "lucide-react";
+import { Check, X, Zap, Crown, MoveLeft, Star } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
 export default function PricingPage() {
     const [loading, setLoading] = useState<string | null>(null);
 
-    const handleCheckout = async (tier: 'explorer' | 'adventurer' | 'master') => {
+    const handleCheckout = async (tier: 'explorer' | 'adventurer' | 'elite' | 'master') => {
         setLoading(tier);
         try {
             const res = await fetch("/api/checkout", {
@@ -47,7 +47,7 @@ export default function PricingPage() {
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-7xl z-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 w-full max-w-7xl z-10">
                 {/* FREE */}
                 <Card className="border-white/10 relative bg-black/40 backdrop-blur-md">
                     <CardHeader>
@@ -136,6 +136,37 @@ export default function PricingPage() {
                     </CardFooter>
                 </Card>
 
+                {/* ELITE */}
+                <Card className="border-amber-500/50 relative bg-amber-900/10 backdrop-blur-md">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-amber-400">
+                            <Star className="w-5 h-5 fill-current" /> Elite
+                        </CardTitle>
+                        <CardDescription>Serious enthusiast.</CardDescription>
+                        <div className="mt-4">
+                            <span className="text-4xl font-bold text-amber-400">$19.99</span>
+                            <span className="text-muted-foreground">/mo</span>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <ul className="space-y-3 text-sm">
+                            <li className="flex gap-2"><Check className="w-4 h-4 text-amber-400" /> 200 Rooms / Month</li>
+                            <li className="flex gap-2"><Check className="w-4 h-4 text-amber-400" /> Unlimited Hints</li>
+                            <li className="flex gap-2"><Check className="w-4 h-4 text-amber-400" /> Bonus Rooms</li>
+                            <li className="flex gap-2"><Check className="w-4 h-4 text-amber-400" /> Priority Queue</li>
+                        </ul>
+                    </CardContent>
+                    <CardFooter>
+                        <Button
+                            className="w-full bg-amber-600 hover:bg-amber-500 text-black font-bold"
+                            onClick={() => handleCheckout('elite')}
+                            disabled={loading === 'elite'}
+                        >
+                            {loading === 'elite' ? 'Processing...' : 'Go Elite'}
+                        </Button>
+                    </CardFooter>
+                </Card>
+
                 {/* MASTER ESCAPE */}
                 <Card className="border-purple-500/50 relative bg-purple-900/10 backdrop-blur-md">
                     <CardHeader>
@@ -154,6 +185,7 @@ export default function PricingPage() {
                             <li className="flex gap-2"><Check className="w-4 h-4 text-purple-400" /> Exclusive Cosmetics</li>
                             <li className="flex gap-2"><Check className="w-4 h-4 text-purple-400" /> Weekly Challenges</li>
                             <li className="flex gap-2"><Check className="w-4 h-4 text-purple-400" /> Early Access</li>
+                            <li className="flex gap-2"><Check className="w-4 h-4 text-purple-400" /> Bonus Content</li>
                         </ul>
                     </CardContent>
                     <CardFooter>
