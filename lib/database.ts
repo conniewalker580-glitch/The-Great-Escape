@@ -2,35 +2,8 @@ import { sql } from '@vercel/postgres';
 
 /**
  * Database connection utility for The Great Escape
- * 
- * MIGRATION NOTICE: This file is being migrated from Vercel Postgres to Firebase Firestore
- * All new code should use the Firebase functions from './firebase-db'
- * This file maintains backward compatibility during the transition
+ * Uses Vercel Postgres for data persistence
  */
-
-// Re-export Firebase functions as primary database interface
-export {
-    createUser,
-    getUser,
-    updateUserTier,
-    incrementRoomsPlayed,
-    resetMonthlyUsage,
-    createSubscription,
-    getSubscription,
-    updateSubscriptionStatus,
-    saveRoomProgress,
-    getRoomProgress,
-    getAllUserProgress,
-    awardBadge,
-    getUserBadges,
-    checkAndAwardBadges,
-    saveAIHint,
-    trackUsage,
-    createDailyReward,
-    claimDailyReward,
-    getUserStats,
-    initializeDatabase,
-} from './firebase-db';
 
 
 // ============================================
