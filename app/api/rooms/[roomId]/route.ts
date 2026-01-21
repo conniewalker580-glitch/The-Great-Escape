@@ -3,10 +3,10 @@ import { getEscapeRoom } from '@/lib/firestore-operations';
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { roomId: string } }
+    { params }: { params: Promise<{ roomId: string }> }
 ) {
     try {
-        const { roomId } = params;
+        const { roomId } = await params;
         const room = await getEscapeRoom(roomId);
 
         if (!room) {

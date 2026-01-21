@@ -3,10 +3,10 @@ import { getCluesByRoomScene } from '@/lib/firestore-operations';
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { sceneId: string } }
+    { params }: { params: Promise<{ sceneId: string }> }
 ) {
     try {
-        const { sceneId } = params;
+        const { sceneId } = await params;
         const clues = await getCluesByRoomScene(sceneId);
 
         return NextResponse.json({ success: true, data: clues });

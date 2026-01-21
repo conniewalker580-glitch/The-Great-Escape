@@ -3,10 +3,10 @@ import { getUserSessionsByUser } from '@/lib/firestore-operations';
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { userId: string } }
+    { params }: { params: Promise<{ userId: string }> }
 ) {
     try {
-        const { userId } = params;
+        const { userId } = await params;
         const sessions = await getUserSessionsByUser(userId);
 
         return NextResponse.json({ success: true, data: sessions });
