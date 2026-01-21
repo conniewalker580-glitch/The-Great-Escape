@@ -5,7 +5,11 @@ import { auth as clientAuth } from './firebase';
 
 // For server-side routes, we'll use the client SDK
 // In production, you should use Firebase Admin SDK with service account
-export const auth = clientAuth;
+// Compatibility: auth(req) function pattern
+export const auth = async (req: Request): Promise<{ userId: string | null }> => {
+    const userInfo = await getCurrentUserInfo(req);
+    return { userId: userInfo?.uid || null };
+};
 
 // Helper function to get current user info from request
 export async function getCurrentUserInfo(request: Request) {
@@ -21,6 +25,7 @@ export async function getCurrentUserInfo(request: Request) {
         return {
             uid: token, // This should be verified token
             email: null,
+            displayName: null,
         };
     } catch (error) {
         console.error('Error getting user info:', error);
