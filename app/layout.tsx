@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Space_Mono } from "next/font/google";
 import "./globals.css";
 import { AccessibilityProvider } from '@/lib/accessibility-context';
-import { ClerkProvider } from '@clerk/nextjs';
+import { AuthProvider } from '@/components/auth-provider';
 
 const inter = Inter({ subsets: ["latin"] });
 const spaceMono = Space_Mono({
@@ -22,7 +22,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
+    <AuthProvider>
       <html lang="en" className="dark">
         <body
           className={`${inter.className} ${spaceMono.variable} antialiased min-h-screen bg-background text-foreground`}
@@ -39,7 +39,7 @@ export default function RootLayout({
           </AccessibilityProvider>
         </body>
       </html>
-    </ClerkProvider>
+    </AuthProvider>
   );
 }
 

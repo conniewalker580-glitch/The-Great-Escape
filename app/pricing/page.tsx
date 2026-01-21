@@ -5,16 +5,27 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Check, X, Zap, Crown, MoveLeft, Star } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { useAuth } from "@/components/auth-provider";
 
 export default function PricingPage() {
+    const { user } = useAuth();
     const [loading, setLoading] = useState<string | null>(null);
 
     const handleCheckout = async (tier: 'explorer' | 'adventurer' | 'elite' | 'master') => {
+        if (!user) {
+            alert("You must be logged in to upgrade.");
+            return;
+        }
+
         setLoading(tier);
         try {
             const res = await fetch("/api/checkout", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-user-id": user.uid,
+                    "x-user-email": user.email || ""
+                },
                 body: JSON.stringify({ tier }),
             });
             const { url } = await res.json();

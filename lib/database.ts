@@ -1,69 +1,94 @@
-import { sql } from '@vercel/postgres';
-
-/**
- * Database connection utility for The Great Escape
- * Uses Vercel Postgres for data persistence
- */
-
+import { db } from '@/lib/firebase';
+import {
+    doc,
+    getDoc,
+    setDoc,
+    updateDoc,
+    collection,
+    query,
+    where,
+    getDocs,
+    orderBy,
+    limit,
+    serverTimestamp,
+    increment,
+    addDoc
+} from 'firebase/firestore';
 
 // ============================================
 // USER OPERATIONS
 // ============================================
 
-export async function createUser(clerkId: string, email: string, username?: string) {
+export async function createUser(userId: string, email: string, username?: string) {
     try {
-        const result = await sql`
-            INSERT INTO users (clerk_id, email, username, tier)
-            VALUES (${clerkId}, ${email}, ${username || null}, 'free')
-            ON CONFLICT (clerk_id) DO UPDATE
-            SET email = ${email}, username = ${username || null}, updated_at = NOW()
-            RETURNING *
-        `;
-        return result.rows[0];
+        const userRef = doc(db, 'users', userId);
+        const userSnap = await getDoc(userRef);
+
+        if (userSnap.exists()) {
+            await updateDoc(userRef, {
+                email,
+                username: username || userSnap.data().username,
+                updated_at: serverTimestamp()
+            });
+            return { id: userId, ...userSnap.data(), email };
+        }
+
+        const userData = {
+            id: userId,
+            email,
+            username: username || null,
+            tier: 'free',
+            created_at: serverTimestamp(),
+            updated_at: serverTimestamp(),
+            rooms_played_this_month: 0,
+            total_rooms_completed: 0,
+            total_hints_used: 0,
+            total_play_time_seconds: 0
+        };
+
+        await setDoc(userRef, userData);
+        return userData;
     } catch (error) {
         console.error('Error creating user:', error);
         throw error;
     }
 }
 
-export async function getUser(clerkId: string) {
+export async function getUser(userId: string) {
     try {
-        const result = await sql`
-            SELECT * FROM users WHERE clerk_id = ${clerkId}
-        `;
-        return result.rows[0] || null;
+        const userRef = doc(db, 'users', userId);
+        const userSnap = await getDoc(userRef);
+        return userSnap.exists() ? { id: userId, ...userSnap.data() } : null;
     } catch (error) {
         console.error('Error getting user:', error);
         return null;
     }
 }
 
-export async function updateUserTier(clerkId: string, tier: string) {
+export async function updateUserTier(userId: string, tier: string) {
     try {
-        const result = await sql`
-            UPDATE users
-            SET tier = ${tier}, updated_at = NOW()
-            WHERE clerk_id = ${clerkId}
-            RETURNING *
-        `;
-        return result.rows[0];
+        const userRef = doc(db, 'users', userId);
+        await updateDoc(userRef, {
+            tier,
+            updated_at: serverTimestamp()
+        });
+        return { id: userId, tier };
     } catch (error) {
         console.error('Error updating user tier:', error);
         throw error;
     }
 }
 
-export async function incrementRoomsPlayed(clerkId: string) {
+export async function incrementRoomsPlayed(userId: string) {
     try {
-        const result = await sql`
-            UPDATE users
-            SET rooms_played_this_month = rooms_played_this_month + 1,
-                total_rooms_completed = total_rooms_completed + 1,
-                updated_at = NOW()
-            WHERE clerk_id = ${clerkId}
-            RETURNING rooms_played_this_month, tier
-        `;
-        return result.rows[0];
+        const userRef = doc(db, 'users', userId);
+        await updateDoc(userRef, {
+            rooms_played_this_month: increment(1),
+            total_rooms_completed: increment(1),
+            updated_at: serverTimestamp()
+        });
+        const snap = await getDoc(userRef);
+        return snap.data();
     } catch (error) {
         console.error('Error incrementing rooms played:', error);
         throw error;
@@ -71,13 +96,8 @@ export async function incrementRoomsPlayed(clerkId: string) {
 }
 
 export async function resetMonthlyUsage() {
-    try {
-        await sql`SELECT reset_monthly_usage()`;
-        return true;
-    } catch (error) {
-        console.error('Error resetting monthly usage:', error);
-        return false;
-    }
+    console.warn('resetMonthlyUsage called - implemented as no-op for client SDK.');
+    return true;
 }
 
 // ============================================
@@ -94,29 +114,24 @@ export async function createSubscription(data: {
     currentPeriodEnd: Date;
 }) {
     try {
-        const result = await sql`
-            INSERT INTO subscriptions (
-                user_id, tier, stripe_customer_id, stripe_subscription_id,
-                stripe_price_id, status, current_period_start, current_period_end
-            )
-            VALUES (
-                ${data.userId}, ${data.tier}, ${data.stripeCustomerId},
-                ${data.stripeSubscriptionId}, ${data.stripePriceId}, 'active',
-                ${data.currentPeriodStart.toISOString()}, ${data.currentPeriodEnd.toISOString()}
-            )
-            ON CONFLICT (stripe_subscription_id) DO UPDATE
-            SET tier = ${data.tier},
-                status = 'active',
-                current_period_start = ${data.currentPeriodStart.toISOString()},
-                current_period_end = ${data.currentPeriodEnd.toISOString()},
-                updated_at = NOW()
-            RETURNING *
-        `;
+        const subRef = doc(db, 'subscriptions', data.stripeSubscriptionId);
 
-        // Update user tier
+        const subData = {
+            user_id: data.userId,
+            tier: data.tier,
+            stripe_customer_id: data.stripeCustomerId,
+            stripe_subscription_id: data.stripeSubscriptionId,
+            stripe_price_id: data.stripePriceId,
+            status: 'active',
+            current_period_start: data.currentPeriodStart,
+            current_period_end: data.currentPeriodEnd,
+            created_at: serverTimestamp(),
+            updated_at: serverTimestamp()
+        };
+
+        await setDoc(subRef, subData);
         await updateUserTier(data.userId, data.tier);
-
-        return result.rows[0];
+        return subData;
     } catch (error) {
         console.error('Error creating subscription:', error);
         throw error;
@@ -125,13 +140,16 @@ export async function createSubscription(data: {
 
 export async function getSubscription(userId: string) {
     try {
-        const result = await sql`
-            SELECT * FROM subscriptions
-            WHERE user_id = ${userId} AND status = 'active'
-            ORDER BY created_at DESC
-            LIMIT 1
-        `;
-        return result.rows[0] || null;
+        const q = query(
+            collection(db, 'subscriptions'),
+            where('user_id', '==', userId),
+            where('status', '==', 'active'),
+            orderBy('created_at', 'desc'),
+            limit(1)
+        );
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) return null;
+        return snapshot.docs[0].data();
     } catch (error) {
         console.error('Error getting subscription:', error);
         return null;
@@ -140,19 +158,22 @@ export async function getSubscription(userId: string) {
 
 export async function updateSubscriptionStatus(stripeSubscriptionId: string, status: string) {
     try {
-        const result = await sql`
-            UPDATE subscriptions
-            SET status = ${status}, updated_at = NOW()
-            WHERE stripe_subscription_id = ${stripeSubscriptionId}
-            RETURNING *
-        `;
+        const subRef = doc(db, 'subscriptions', stripeSubscriptionId);
+        const subSnap = await getDoc(subRef);
 
-        // If canceled, update user tier to free
-        if (status === 'canceled' && result.rows[0]) {
-            await updateUserTier(result.rows[0].user_id, 'free');
+        if (!subSnap.exists()) return null;
+
+        await updateDoc(subRef, {
+            status,
+            updated_at: serverTimestamp()
+        });
+
+        const data = subSnap.data();
+        if (status === 'canceled' && data.user_id) {
+            await updateUserTier(data.user_id, 'free');
         }
 
-        return result.rows[0];
+        return { ...data, status };
     } catch (error) {
         console.error('Error updating subscription status:', error);
         throw error;
@@ -173,40 +194,45 @@ export async function saveRoomProgress(data: {
     hintsUsed: number;
 }) {
     try {
-        const result = await sql`
-            INSERT INTO room_progress (
-                user_id, room_id, completed, stars, rank,
-                time_seconds, hints_used, first_completed_at, last_played_at
-            )
-            VALUES (
-                ${data.userId}, ${data.roomId}, ${data.completed}, ${data.stars},
-                ${data.rank}, ${data.timeSeconds}, ${data.hintsUsed}, NOW(), NOW()
-            )
-            ON CONFLICT (user_id, room_id) DO UPDATE
-            SET completed = ${data.completed},
-                stars = GREATEST(room_progress.stars, ${data.stars}),
-                rank = CASE 
-                    WHEN ${data.rank} < room_progress.rank THEN ${data.rank}
-                    ELSE room_progress.rank
-                END,
-                time_seconds = LEAST(room_progress.time_seconds, ${data.timeSeconds}),
-                hints_used = ${data.hintsUsed},
-                attempts = room_progress.attempts + 1,
-                last_played_at = NOW()
-            RETURNING *
-        `;
+        const progressRef = doc(db, 'users', data.userId, 'room_progress', data.roomId);
+        const progressSnap = await getDoc(progressRef);
 
-        // Update user stats
-        if (data.completed) {
-            await sql`
-                UPDATE users
-                SET total_hints_used = total_hints_used + ${data.hintsUsed},
-                    total_play_time_seconds = total_play_time_seconds + ${data.timeSeconds}
-                WHERE clerk_id = ${data.userId}
-            `;
+        let finalStars = data.stars;
+        let attempts = 1;
+
+        if (progressSnap.exists()) {
+            const current = progressSnap.data();
+            finalStars = Math.max(current.stars || 0, data.stars);
+            attempts = (current.attempts || 0) + 1;
         }
 
-        return result.rows[0];
+        const updateData = {
+            user_id: data.userId,
+            room_id: data.roomId,
+            completed: data.completed,
+            stars: finalStars,
+            rank: data.rank,
+            time_seconds: data.timeSeconds,
+            hints_used: data.hintsUsed,
+            attempts: attempts,
+            last_played_at: serverTimestamp(),
+        };
+
+        if (!progressSnap.exists()) {
+            Object.assign(updateData, { first_completed_at: serverTimestamp() });
+        }
+
+        await setDoc(progressRef, updateData, { merge: true });
+
+        if (data.completed) {
+            const userRef = doc(db, 'users', data.userId);
+            await updateDoc(userRef, {
+                total_hints_used: increment(data.hintsUsed),
+                total_play_time_seconds: increment(data.timeSeconds)
+            });
+        }
+
+        return updateData;
     } catch (error) {
         console.error('Error saving room progress:', error);
         throw error;
@@ -215,11 +241,9 @@ export async function saveRoomProgress(data: {
 
 export async function getRoomProgress(userId: string, roomId: string) {
     try {
-        const result = await sql`
-            SELECT * FROM room_progress
-            WHERE user_id = ${userId} AND room_id = ${roomId}
-        `;
-        return result.rows[0] || null;
+        const progressRef = doc(db, 'users', userId, 'room_progress', roomId);
+        const snap = await getDoc(progressRef);
+        return snap.exists() ? snap.data() : null;
     } catch (error) {
         console.error('Error getting room progress:', error);
         return null;
@@ -228,12 +252,9 @@ export async function getRoomProgress(userId: string, roomId: string) {
 
 export async function getAllUserProgress(userId: string) {
     try {
-        const result = await sql`
-            SELECT * FROM room_progress
-            WHERE user_id = ${userId}
-            ORDER BY last_played_at DESC
-        `;
-        return result.rows;
+        const colRef = collection(db, 'users', userId, 'room_progress');
+        const snap = await getDocs(colRef);
+        return snap.docs.map(d => d.data());
     } catch (error) {
         console.error('Error getting all user progress:', error);
         return [];
@@ -246,13 +267,18 @@ export async function getAllUserProgress(userId: string) {
 
 export async function awardBadge(userId: string, badgeId: string) {
     try {
-        const result = await sql`
-            INSERT INTO user_badges (user_id, badge_id)
-            VALUES (${userId}, ${badgeId})
-            ON CONFLICT (user_id, badge_id) DO NOTHING
-            RETURNING *
-        `;
-        return result.rows[0];
+        const badgeRef = doc(db, 'users', userId, 'badges', badgeId);
+        const snap = await getDoc(badgeRef);
+
+        if (snap.exists()) return null;
+
+        const badgeData = {
+            user_id: userId,
+            badge_id: badgeId,
+            earned_at: serverTimestamp()
+        };
+        await setDoc(badgeRef, badgeData);
+        return badgeData;
     } catch (error) {
         console.error('Error awarding badge:', error);
         return null;
@@ -261,71 +287,11 @@ export async function awardBadge(userId: string, badgeId: string) {
 
 export async function getUserBadges(userId: string) {
     try {
-        const result = await sql`
-            SELECT b.*, ub.earned_at
-            FROM badges b
-            JOIN user_badges ub ON b.badge_id = ub.badge_id
-            WHERE ub.user_id = ${userId}
-            ORDER BY ub.earned_at DESC
-        `;
-        return result.rows;
+        const colRef = collection(db, 'users', userId, 'badges');
+        const snap = await getDocs(colRef);
+        return snap.docs.map(d => d.data());
     } catch (error) {
         console.error('Error getting user badges:', error);
-        return [];
-    }
-}
-
-export async function checkAndAwardBadges(userId: string) {
-    try {
-        const user = await getUser(userId);
-        if (!user) return [];
-
-        const badges = await sql`SELECT * FROM badges`;
-        const newBadges = [];
-
-        for (const badge of badges.rows) {
-            // Check if user already has this badge
-            const hasBadge = await sql`
-                SELECT 1 FROM user_badges
-                WHERE user_id = ${userId} AND badge_id = ${badge.badge_id}
-            `;
-
-            if (hasBadge.rows.length > 0) continue;
-
-            // Check if user meets requirements
-            let meetsRequirement = false;
-
-            switch (badge.requirement_type) {
-                case 'rooms_completed':
-                    meetsRequirement = user.total_rooms_completed >= badge.requirement_value;
-                    break;
-                case 'time_seconds':
-                    const fastRoom = await sql`
-                        SELECT 1 FROM room_progress
-                        WHERE user_id = ${userId} AND time_seconds <= ${badge.requirement_value}
-                        LIMIT 1
-                    `;
-                    meetsRequirement = fastRoom.rows.length > 0;
-                    break;
-                case 'hints_used':
-                    const noHintRoom = await sql`
-                        SELECT 1 FROM room_progress
-                        WHERE user_id = ${userId} AND hints_used = 0 AND completed = TRUE
-                        LIMIT 1
-                    `;
-                    meetsRequirement = noHintRoom.rows.length > 0;
-                    break;
-            }
-
-            if (meetsRequirement) {
-                const awarded = await awardBadge(userId, badge.badge_id);
-                if (awarded) newBadges.push(badge);
-            }
-        }
-
-        return newBadges;
-    } catch (error) {
-        console.error('Error checking and awarding badges:', error);
         return [];
     }
 }
@@ -341,103 +307,66 @@ export async function saveAIHint(data: {
     hintText: string;
 }) {
     try {
-        const result = await sql`
-            INSERT INTO ai_hints (user_id, room_id, puzzle_id, hint_text)
-            VALUES (${data.userId}, ${data.roomId}, ${data.puzzleId || null}, ${data.hintText})
-            RETURNING *
-        `;
-        return result.rows[0];
+        const hintData = {
+            user_id: data.userId,
+            room_id: data.roomId,
+            puzzle_id: data.puzzleId || null,
+            hint_text: data.hintText,
+            created_at: serverTimestamp()
+        };
+        await addDoc(collection(db, 'ai_hints'), hintData);
+        return hintData;
     } catch (error) {
         console.error('Error saving AI hint:', error);
         return null;
     }
 }
 
-// ============================================
-// USAGE TRACKING
-// ============================================
-
-export async function trackUsage(data: {
-    userId: string;
-    actionType: string;
-    roomId?: string;
-    metadata?: any;
-}) {
+export async function trackUsage(data: any) {
     try {
-        await sql`
-            INSERT INTO usage_tracking (user_id, action_type, room_id, metadata)
-            VALUES (
-                ${data.userId},
-                ${data.actionType},
-                ${data.roomId || null},
-                ${data.metadata ? JSON.stringify(data.metadata) : null}
-            )
-        `;
-    } catch (error) {
-        console.error('Error tracking usage:', error);
-    }
+        await addDoc(collection(db, 'usage_tracking'), { ...data, timestamp: serverTimestamp() });
+    } catch (e) { console.error(e); }
 }
-
-// ============================================
-// DAILY REWARDS
-// ============================================
-
-export async function createDailyReward(userId: string, rewardType: string, rewardValue: string) {
-    try {
-        const result = await sql`
-            INSERT INTO daily_rewards (user_id, reward_type, reward_value)
-            VALUES (${userId}, ${rewardType}, ${rewardValue})
-            ON CONFLICT (user_id, reward_date) DO NOTHING
-            RETURNING *
-        `;
-        return result.rows[0];
-    } catch (error) {
-        console.error('Error creating daily reward:', error);
-        return null;
-    }
-}
-
-export async function claimDailyReward(userId: string) {
-    try {
-        const result = await sql`
-            UPDATE daily_rewards
-            SET claimed = TRUE, claimed_at = NOW()
-            WHERE user_id = ${userId}
-                AND reward_date = CURRENT_DATE
-                AND claimed = FALSE
-            RETURNING *
-        `;
-        return result.rows[0] || null;
-    } catch (error) {
-        console.error('Error claiming daily reward:', error);
-        return null;
-    }
-}
-
-// ============================================
-// UTILITY FUNCTIONS
-// ============================================
 
 export async function getUserStats(userId: string) {
-    try {
-        const result = await sql`
-            SELECT * FROM user_stats WHERE clerk_id = ${userId}
-        `;
-        return result.rows[0] || null;
-    } catch (error) {
-        console.error('Error getting user stats:', error);
-        return null;
-    }
+    return getUser(userId);
 }
 
 export async function initializeDatabase() {
+    console.log('Firebase ready.');
+    return true;
+}
+
+// Stubbed for now
+export async function createDailyReward(uid: string, type: string, val: string) { return null; }
+export async function claimDailyReward(uid: string) { return null; }
+export async function checkAndAwardBadges(uid: string) { return []; } 
+
+export async function getGeneratedRooms(userId: string) {
     try {
-        // This function can be called to ensure tables exist
-        // In production, run the schema.sql file manually or via migration tool
-        console.log('Database initialized. Run schema.sql to create tables.');
-        return true;
+        const q = query(
+            collection(db, 'generated_rooms'),
+            where('user_id', '==', userId),
+            orderBy('created_at', 'desc')
+        );
+        const snap = await getDocs(q);
+        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (error) {
-        console.error('Error initializing database:', error);
-        return false;
+        console.error('Error getting generated rooms:', error);
+        return [];
     }
 }
+
+
+export async function saveGeneratedRoom(room: any, userId: string) {
+    try {
+        const docRef = doc(db, 'generated_rooms', room.id);
+        const data = { ...room, user_id: userId, created_at: serverTimestamp() };
+        await setDoc(docRef, data);
+        return data;
+    } catch (error) {
+        console.error('Error saving generated room:', error);
+        throw error;
+    }
+}
+

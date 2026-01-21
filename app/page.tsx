@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Play, Star, Rocket, Activity, Lock } from "lucide-react";
 import Link from "next/link";
-import { SignInButton, SignUpButton, SignedIn, SignedOut } from "@clerk/nextjs";
+import { useAuth } from "@/components/auth-provider";
 
 export default function Home() {
+  const { user, loading, signInWithGoogle } = useAuth();
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden stars">
       {/* Background Elements */}
@@ -34,26 +36,24 @@ export default function Home() {
         </p>
 
         <div className="flex flex-col md:flex-row gap-6 justify-center items-center mt-12">
-          <SignedOut>
-            <SignUpButton mode="modal">
-              <Button size="lg" className="w-56 h-16 text-lg gap-2 shadow-cyan-500/20 shadow-xl border border-cyan-500/20 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300">
+          {!loading && !user && (
+            <>
+              <Button onClick={signInWithGoogle} size="lg" className="w-56 h-16 text-lg gap-2 shadow-cyan-500/20 shadow-xl border border-cyan-500/20 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300">
                 <Rocket className="w-5 h-5 fill-current" /> Initialize Profile
               </Button>
-            </SignUpButton>
-            <SignInButton mode="modal">
-              <Button variant="ghost" size="lg" className="w-56 h-16 text-lg text-muted-foreground hover:text-white">
+              <Button onClick={signInWithGoogle} variant="ghost" size="lg" className="w-56 h-16 text-lg text-muted-foreground hover:text-white">
                 Access Terminal
               </Button>
-            </SignInButton>
-          </SignedOut>
+            </>
+          )}
 
-          <SignedIn>
+          {!loading && user && (
             <Link href="/dashboard">
               <Button size="lg" className="w-64 h-16 text-lg gap-3 animate-pulse-slow bg-cyan-500 hover:bg-cyan-400 text-black font-bold">
                 <Play className="w-6 h-6 fill-black" /> Enter Mission Control
               </Button>
             </Link>
-          </SignedIn>
+          )}
         </div>
       </motion.div>
 

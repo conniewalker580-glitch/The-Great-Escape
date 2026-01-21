@@ -19,9 +19,6 @@
     "test:deploy": "node scripts/test-deployment.js"
   },
   "dependencies": {
-    "@clerk/nextjs": "^6.36.7",
-    "@clerk/themes": "^2.4.47",
-    "@vercel/postgres": "^0.10.0",
     "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

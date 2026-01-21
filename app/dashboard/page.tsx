@@ -4,25 +4,25 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { ROOMS } from "@/lib/game-data";
-import { Lock, Play, Rocket, Share2, Plus, LayoutTemplate, Zap, Loader2 } from "lucide-react";
+import { Lock, Play, Rocket, Share2, Plus, LayoutTemplate, Zap, Loader2, LogOut } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { UserButton, useUser } from "@clerk/nextjs";
+import { useAuth } from "@/components/auth-provider";
+import { getUser, createUser, getGeneratedRooms, saveGeneratedRoom } from "@/lib/database";
+
 import { useRouter } from "next/navigation";
 
 interface DashboardUser {
     tier: string;
-    // Add other fields if needed for display
 }
 
 interface DashboardRoom {
     id: string;
     theme: string;
-    // Add other fields as needed
 }
 
 export default function DashboardPage() {
-    const { user, isLoaded } = useUser();
+    const { user, loading, signOut } = useAuth();
     const router = useRouter();
     const [userData, setUserData] = useState<DashboardUser | null>(null);
     const [generatedRooms, setGeneratedRooms] = useState<DashboardRoom[]>([]);
@@ -31,22 +31,37 @@ export default function DashboardPage() {
     const [isGenerating, setIsGenerating] = useState(false);
 
     useEffect(() => {
-        if (isLoaded && user) {
-            fetch("/api/user-progress")
-                .then(res => res.json())
-                .then(data => {
-                    setUserData(data.user);
-                    setGeneratedRooms(data.generatedRooms);
-                });
+        if (!loading && user) {
+            (async () => {
+                try {
+                    let dbUser = await getUser(user.uid);
+                    if (!dbUser) {
+                        dbUser = await createUser(user.uid, user.email || '', user.displayName || undefined);
+                    }
+                    // Safe cast or mapping
+                    if (dbUser) setUserData({ tier: (dbUser as any).tier });
+
+                    const rooms = await getGeneratedRooms(user.uid);
+                    setGeneratedRooms(rooms.map((r: any) => ({ id: r.id, theme: r.theme || 'Unknown' })));
+                } catch (e) {
+                    console.error("Dashboard load failed", e);
+                }
+            })();
+        } else if (!loading && !user) {
+            router.push("/");
         }
-    }, [isLoaded, user]);
+    }, [loading, user, router]);
 
     const handleGenerateRoom = async () => {
+        if (!user) return;
         setIsGenerating(true);
         try {
             const res = await fetch("/api/generate-room", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-user-id": user.uid
+                },
                 body: JSON.stringify({ theme: selectedTheme, difficulty: selectedDifficulty })
             });
 
@@ -58,7 +73,11 @@ export default function DashboardPage() {
             }
 
             const data = await res.json();
-            setGeneratedRooms(prev => [...prev, data.room]);
+
+            if (data.room && user) {
+                await saveGeneratedRoom(data.room, user.uid);
+                setGeneratedRooms(prev => [...prev, { id: data.room.id, theme: data.room.theme }]);
+            }
         } catch {
             alert("Connection Error");
         } finally {
@@ -66,7 +85,8 @@ export default function DashboardPage() {
         }
     };
 
-    if (!isLoaded) return <div className="min-h-screen flex items-center justify-center text-cyan-500">Initializing Uplink...</div>;
+    if (loading) return <div className="min-h-screen flex items-center justify-center text-cyan-500">Initializing Uplink...</div>;
+    if (!user) return null;
 
     return (
         <div className="min-h-screen p-8 pt-20 max-w-7xl mx-auto relative">
@@ -79,7 +99,7 @@ export default function DashboardPage() {
                         MISSION CONTROL
                     </h1>
                     <p className="text-cyan-400/60 mt-1 font-mono text-sm">
-                        WELCOME BACK, AGENT {user?.firstName?.toUpperCase() || 'UNKNOWN'}
+                        WELCOME BACK, AGENT {user.displayName?.toUpperCase() || 'UNKNOWN'}
                     </p>
                 </div>
                 <div className="flex gap-4 items-center">
@@ -87,11 +107,9 @@ export default function DashboardPage() {
                         <span className="text-xs text-muted-foreground uppercase tracking-widest">Clearance Level</span>
                         <span className="font-bold text-cyan-400">{userData?.tier?.toUpperCase() || 'FREE'} CLASS</span>
                     </div>
-                    <UserButton afterSignOutUrl="/" appearance={{
-                        elements: {
-                            avatarBox: "w-10 h-10 border-2 border-cyan-500/50"
-                        }
-                    }} />
+                    <Button variant="ghost" size="icon" onClick={signOut} title="Sign Out">
+                        <LogOut className="w-5 h-5 text-red-400" />
+                    </Button>
                 </div>
             </div>
 
