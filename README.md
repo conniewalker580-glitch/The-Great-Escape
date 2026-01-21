@@ -232,7 +232,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👤 Author
 
 **C.S. Walker**
-- Email: snapmoodsai@gmail.com
+- Email: snapmoodaivideo@gmail.com
 - GitHub: [@conniewalker580](https://github.com/conniewalker580)
 
 ## 🙏 Acknowledgments
@@ -260,7 +260,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 Having issues? Check out:
 - [Quick Start Guide](QUICK_START.md)
 - [GitHub Issues](https://github.com/yourusername/the-great-escape/issues)
-- Email: snapmoodsai@gmail.com
+- Email: snapmoodaivideo@gmail.com
 
 ---
 
