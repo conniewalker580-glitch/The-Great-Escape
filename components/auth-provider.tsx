@@ -30,6 +30,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setLoading(false);
         });
 
+        // Handle redirect result
+        (async () => {
+            try {
+                const { getRedirectResult } = await import('firebase/auth');
+                await getRedirectResult(auth);
+            } catch (error: any) {
+                console.error("Redirect auth error", error);
+                alert(`Login Failed: ${error.message}`);
+            }
+        })();
+
         return () => unsubscribe();
     }, []);
 
@@ -40,16 +51,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const signInWithGoogle = async () => {
         try {
-            const { GoogleAuthProvider, signInWithPopup } = await import('firebase/auth');
+            const { GoogleAuthProvider, signInWithRedirect } = await import('firebase/auth');
             const provider = new GoogleAuthProvider();
-            await signInWithPopup(auth, provider);
-            router.push("/dashboard");
+            await signInWithRedirect(auth, provider);
         } catch (error: any) {
-            if (error.code === 'auth/cancelled-popup-request') {
-                // User cancelled the login flow, ignore
-                return;
-            }
-            console.error("Error signing in with Google", error);
+            console.error("Error initiating google sign in", error);
             alert(`Login Failed: ${error.message}`);
         }
     };
