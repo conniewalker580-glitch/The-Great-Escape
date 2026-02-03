@@ -1,0 +1,125 @@
+.room-360-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #0f172a;
+}
+
+.room-360-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.hotspot-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+    border: 2px solid rgba(139, 92, 246, 0.5);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    white-space: nowrap;
+    pointer-events: auto;
+    animation: hotspotFloat 3s ease-in-out infinite;
+    box-shadow: 0 8px 32px rgba(139, 92, 246, 0.3);
+}
+
+@keyframes hotspotFloat {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-5px);
+    }
+}
+
+.hotspot-label:hover {
+    transform: scale(1.1) translateY(-3px);
+    border-color: #8b5cf6;
+    box-shadow: 0 15px 40px rgba(139, 92, 246, 0.5);
+}
+
+.hotspot-icon {
+    font-size: 1.2rem;
+    animation: pointBounce 1s ease-in-out infinite;
+}
+
+@keyframes pointBounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-3px);
+    }
+}
+
+.hotspot-text {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.room-instructions {
+    position: fixed;
+    bottom: 140px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.9));
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 20px;
+    padding: 12px 24px;
+    z-index: 50;
+    animation: fadeInUp 1s ease 0.5s both;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+.room-instructions p {
+    margin: 0;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .room-instructions {
+        bottom: 160px;
+        padding: 10px 16px;
+        width: 90%;
+        max-width: 400px;
+    }
+
+    .room-instructions p {
+        font-size: 0.75rem;
+    }
+
+    .hotspot-label {
+        padding: 8px 12px;
+    }
+
+    .hotspot-text {
+        font-size: 0.8rem;
+    }
+}

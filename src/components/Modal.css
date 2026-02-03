@@ -1,0 +1,662 @@
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.modal-container {
+    animation: slideUp 0.4s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-content {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.98));
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    border-radius: 24px;
+    padding: 0;
+    width: 90vw;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow: auto;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5),
+        0 0 60px rgba(139, 92, 246, 0.3);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.1));
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.close-btn {
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #ef4444;
+    font-size: 1.2rem;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-btn:hover {
+    background: rgba(239, 68, 68, 0.4);
+    transform: rotate(90deg);
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+.modal-description {
+    color: #e2e8f0;
+    font-size: 1rem;
+    line-height: 1.6;
+    margin: 16px 0;
+    text-align: center;
+}
+
+/* Book Modal Styles */
+.book-image {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.book-visual {
+    position: relative;
+    width: 200px;
+    height: 150px;
+}
+
+.book-cover {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #7c3aed, #4c1d95);
+    border-radius: 4px 12px 12px 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: -4px 4px 20px rgba(0, 0, 0, 0.5);
+    border-left: 8px solid #5b21b6;
+}
+
+.book-title {
+    color: #fef3c7;
+    font-size: 0.9rem;
+    font-weight: bold;
+    text-align: center;
+    padding: 10px;
+}
+
+.key-in-book {
+    position: absolute;
+    bottom: -10px;
+    right: 20px;
+    animation: keyFloat 2s ease-in-out infinite;
+}
+
+@keyframes keyFloat {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(-15deg);
+    }
+
+    50% {
+        transform: translateY(-5px) rotate(-15deg);
+    }
+}
+
+.key-icon {
+    font-size: 2.5rem;
+    filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.8));
+}
+
+.key-shine {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle, rgba(251, 191, 36, 0.3) 0%, transparent 70%);
+    animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+
+    0%,
+    100% {
+        opacity: 0.5;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+/* Vase Modal Styles */
+.vase-image {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.vase-visual {
+    position: relative;
+    width: 150px;
+    height: 200px;
+}
+
+.vase-body {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #0ea5e9, #0369a1);
+    border-radius: 30% 30% 50% 50%;
+    position: relative;
+    box-shadow: inset -20px 0 40px rgba(0, 0, 0, 0.3);
+}
+
+.vase-body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70%;
+    height: 20px;
+    background: linear-gradient(135deg, #0ea5e9, #075985);
+    border-radius: 10px 10px 0 0;
+}
+
+.secret-drawer {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 25px;
+    background: linear-gradient(135deg, #0369a1, #164e63);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    transition: all 0.5s ease;
+}
+
+.secret-drawer.opened {
+    transform: translateX(-50%) translateY(20px);
+    background: linear-gradient(135deg, #164e63, #0c4a6e);
+}
+
+.drawer-handle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 6px;
+    background: #fbbf24;
+    border-radius: 3px;
+}
+
+.note-in-drawer {
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.5rem;
+    animation: noteReveal 0.5s ease;
+}
+
+@keyframes noteReveal {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+/* Painting Modal Styles */
+.painting-image {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.painting-visual {
+    position: relative;
+}
+
+.painting-frame {
+    padding: 15px;
+    background: linear-gradient(135deg, #92400e, #78350f);
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.painting-canvas {
+    width: 250px;
+    height: 180px;
+    background: linear-gradient(to bottom, #1e1b4b, #312e81);
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+}
+
+.painting-art .moon {
+    position: absolute;
+    top: 20px;
+    right: 40px;
+    width: 50px;
+    height: 50px;
+    background: radial-gradient(circle, #fef3c7, #fbbf24);
+    border-radius: 50%;
+    box-shadow: 0 0 30px rgba(251, 191, 36, 0.5);
+}
+
+.painting-art .stars {
+    position: absolute;
+    top: 10px;
+    left: 20px;
+    font-size: 1.5rem;
+}
+
+.painting-art .mountains {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 80px;
+    background: linear-gradient(135deg, #3730a3 0%, #4338ca 50%, #3730a3 100%);
+    clip-path: polygon(0 100%, 20% 40%, 40% 70%, 60% 30%, 80% 60%, 100% 20%, 100% 100%);
+}
+
+/* Safe Styles */
+.safe-revealed {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1f2937, #374151);
+    animation: safeReveal 0.5s ease;
+}
+
+@keyframes safeReveal {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.safe {
+    background: #4b5563;
+    padding: 15px;
+    border-radius: 8px;
+    border: 3px solid #6b7280;
+}
+
+.safe-door {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+}
+
+.keypad-btn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #374151, #1f2937);
+    color: #e2e8f0;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid #4b5563;
+}
+
+.keypad-btn:hover {
+    background: linear-gradient(135deg, #4b5563, #374151);
+    transform: scale(1.05);
+}
+
+.keypad-btn:active {
+    transform: scale(0.95);
+}
+
+.keypad-btn.error {
+    animation: shake 0.3s ease;
+    background: linear-gradient(135deg, #7f1d1d, #991b1b);
+}
+
+@keyframes shake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-5px);
+    }
+
+    75% {
+        transform: translateX(5px);
+    }
+}
+
+.code-display {
+    display: flex;
+    gap: 5px;
+    padding: 8px 12px;
+    background: #1f2937;
+    border-radius: 6px;
+    border: 2px solid #374151;
+}
+
+.code-display.error {
+    border-color: #ef4444;
+    animation: shake 0.3s ease;
+}
+
+.code-digit {
+    font-family: 'Courier New', monospace;
+    font-size: 1.5rem;
+    color: #22d3ee;
+    text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+}
+
+.safe-open {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #14532d, #166534);
+    animation: safeOpen 0.5s ease;
+}
+
+@keyframes safeOpen {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.exit-key-container {
+    text-align: center;
+}
+
+.exit-key {
+    font-size: 4rem;
+    animation: keyGlow 1.5s ease-in-out infinite;
+}
+
+@keyframes keyGlow {
+
+    0%,
+    100% {
+        filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.8));
+    }
+
+    50% {
+        filter: drop-shadow(0 0 20px rgba(251, 191, 36, 1));
+    }
+}
+
+.exit-key-container p {
+    color: #a7f3d0;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+/* Door Modal Styles */
+.door-image {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.door-visual {
+    position: relative;
+}
+
+.door-frame {
+    padding: 10px;
+    background: linear-gradient(135deg, #78350f, #92400e);
+    border-radius: 8px 8px 0 0;
+}
+
+.door-panel {
+    width: 150px;
+    height: 200px;
+    background: linear-gradient(135deg, #7c3aed, #5b21b6);
+    border-radius: 8px 8px 0 0;
+    position: relative;
+    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.3);
+}
+
+.door-handle {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    width: 15px;
+    height: 40px;
+    background: linear-gradient(135deg, #fbbf24, #d97706);
+    border-radius: 4px;
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.door-keyhole {
+    position: absolute;
+    right: 22px;
+    top: 55%;
+    width: 10px;
+    height: 15px;
+    background: #1f2937;
+    border-radius: 50% 50% 30% 30%;
+}
+
+.door-keyhole::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 10px;
+    background: #1f2937;
+}
+
+.freedom-light {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 200px;
+    background: linear-gradient(to bottom, rgba(251, 191, 36, 0.3), transparent);
+    animation: lightPulse 2s ease-in-out infinite;
+}
+
+@keyframes lightPulse {
+
+    0%,
+    100% {
+        opacity: 0.5;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+/* Action Buttons */
+.action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 14px 24px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 16px;
+}
+
+.take-btn {
+    background: linear-gradient(135deg, #fbbf24, #d97706);
+    color: #1f2937;
+}
+
+.take-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(251, 191, 36, 0.4);
+}
+
+.use-key-btn {
+    background: linear-gradient(135deg, #6b7280, #4b5563);
+    color: #d1d5db;
+}
+
+.use-key-btn.ready {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+}
+
+.use-key-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.use-key-btn:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4);
+}
+
+.escape-btn {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    animation: escapeGlow 1.5s ease-in-out infinite;
+}
+
+@keyframes escapeGlow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 0 40px rgba(16, 185, 129, 0.8);
+    }
+}
+
+.escape-btn:hover {
+    transform: translateY(-2px) scale(1.02);
+}
+
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95vw;
+        max-height: 85vh;
+    }
+
+    .modal-header {
+        padding: 16px 20px;
+    }
+
+    .modal-header h2 {
+        font-size: 1.2rem;
+    }
+
+    .modal-body {
+        padding: 16px;
+    }
+
+    .painting-canvas {
+        width: 200px;
+        height: 150px;
+    }
+
+    .keypad-btn {
+        width: 35px;
+        height: 35px;
+        font-size: 0.9rem;
+    }
+}
