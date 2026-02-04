@@ -2,11 +2,13 @@ import { useRef, useEffect, useState, memo } from 'react';
 import * as THREE from 'three';
 import useGameStore from '../store/gameStore';
 import aiService from '../services/aiService';
+import ObjectiveBanner from './RoomRenderer/ObjectiveBanner';
+import QuizPanel from './RoomRenderer/QuizPanel';
 import './Room3D.css';
 
 const Room3D = ({ room }) => {
     const containerRef = useRef();
-    const { collectHotspot, startTimer, timerStarted, setActiveModal } = useGameStore();
+    const { collectHotspot, startTimer, timerStarted, setActiveModal, currentRoom } = useGameStore();
     const [textures, setTextures] = useState({
         walls: null,
         floor: null,
@@ -17,9 +19,11 @@ const Room3D = ({ room }) => {
     useEffect(() => {
         const fetchTextures = async () => {
             try {
-                const wallTex = await aiService.generateVisual("dark stone wall texture, high detail, concrete block, dirty, seamless", "item");
-                const floorTex = await aiService.generateVisual("worn concrete floor texture, dusty, cracked, seamless", "item");
-                const objectTex = await aiService.generateVisual("ancient geometric symbols carved in stone, cryptic, mystical", "item");
+                // Background image from room config acts as the base prompt
+                const basePrompt = room.background || "dark stone wall";
+                const wallTex = await aiService.generateVisual(`${basePrompt}, high detail stone texture, seamless`, "item");
+                const floorTex = await aiService.generateVisual("worn concrete industrial floor, dusty, seamless", "item");
+                const objectTex = await aiService.generateVisual("cryptic mathematical pi symbol carved in stone, ancient", "item");
 
                 setTextures({
                     walls: wallTex,
@@ -31,7 +35,7 @@ const Room3D = ({ room }) => {
             }
         };
         fetchTextures();
-    }, []);
+    }, [room.background]);
 
     useEffect(() => {
         if (!containerRef.current) return;
@@ -41,18 +45,19 @@ const Room3D = ({ room }) => {
         scene.background = new THREE.Color(0x050505);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 1.6, 3);
+        camera.position.set(0, 1.6, 4);
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
         containerRef.current.appendChild(renderer.domElement);
 
         // LIGHTING
-        const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.8);
         scene.add(ambientLight);
 
-        const pointLight = new THREE.PointLight(0xffffff, 1, 10);
-        pointLight.position.set(0, 3, 0);
+        const pointLight = new THREE.PointLight(0xffffff, 1.5, 20);
+        pointLight.position.set(0, 3, 2);
         scene.add(pointLight);
 
         // MATERIALS
@@ -68,30 +73,30 @@ const Room3D = ({ room }) => {
         });
 
         // ROOM GEOMETRY
-        const roomBox = new THREE.Mesh(new THREE.BoxGeometry(10, 5, 10), wallMat);
-        roomBox.position.y = 2.5;
+        const roomBox = new THREE.Mesh(new THREE.BoxGeometry(12, 6, 12), wallMat);
+        roomBox.position.y = 3;
         scene.add(roomBox);
 
-        const floor = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), floorMat);
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), floorMat);
         floor.rotation.x = -Math.PI / 2;
         scene.add(floor);
 
-        // DECORATIVE OBJECT (Painting/Symbol)
-        const objGeo = new THREE.PlaneGeometry(2, 2);
+        // DECORATIVE OBJECT
+        const objGeo = new THREE.PlaneGeometry(3, 3);
         const objMat = new THREE.MeshStandardMaterial({
             transparent: true,
             map: textures.object ? texLoader.load(textures.object) : null,
             color: textures.object ? 0xffffff : 0x222222
         });
         const wallObj = new THREE.Mesh(objGeo, objMat);
-        wallObj.position.set(0, 2, -4.95);
+        wallObj.position.set(0, 2.5, -5.9);
         scene.add(wallObj);
 
         // HOTSPOTS
         const hotspots = [];
         room.hotspots?.forEach((hs) => {
             const spot = new THREE.Mesh(
-                new THREE.SphereGeometry(0.3),
+                new THREE.SphereGeometry(0.5),
                 new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 })
             );
             spot.position.set(...hs.position);
@@ -105,6 +110,8 @@ const Room3D = ({ room }) => {
         const mouse = new THREE.Vector2();
 
         const handleClick = (e) => {
+            if (e.target.closest('.objective-banner') || e.target.closest('.quiz-panel') || e.target.closest('.back-btn')) return;
+
             mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
@@ -118,7 +125,14 @@ const Room3D = ({ room }) => {
             }
         };
 
+        const handleResize = () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        };
+
         window.addEventListener('click', handleClick);
+        window.addEventListener('resize', handleResize);
 
         // ANIMATION
         const animate = () => {
@@ -130,6 +144,7 @@ const Room3D = ({ room }) => {
         // CLEANUP
         return () => {
             window.removeEventListener('click', handleClick);
+            window.removeEventListener('resize', handleResize);
             renderer.dispose();
             if (containerRef.current) {
                 containerRef.current.removeChild(renderer.domElement);
@@ -137,7 +152,27 @@ const Room3D = ({ room }) => {
         };
     }, [textures, room, collectHotspot, startTimer, timerStarted, setActiveModal]);
 
-    return <div ref={containerRef} className="room-3d-container" style={{ width: '100%', height: '100vh' }} />;
+    return (
+        <div className="room-3d-wrapper">
+            <div ref={containerRef} className="room-3d-canvas-container" />
+
+            {/* UI Overlay */}
+            <div className="room-3d-ui-layer">
+                <ObjectiveBanner
+                    objective={room.objective}
+                    roomName={room.name}
+                />
+
+                <QuizPanel key={currentRoom?.id} />
+
+                <div className="room-renderer__hud">
+                    <span className="clue-tracker">
+                        🔎 DISCOVERIES: {useGameStore.getState().collectedItems.length}
+                    </span>
+                </div>
+            </div>
+        </div>
+    );
 };
 
 export default memo(Room3D);

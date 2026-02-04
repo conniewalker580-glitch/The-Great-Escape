@@ -98,6 +98,34 @@ export const aiService = {
             console.error('Error generating room content:', error);
             return null;
         }
+    },
+    /**
+     * Narrates text using the browser's TTS engine (simulating AI voice)
+     * @param {string} text - The text to speak
+     */
+    speak: (text) => {
+        if (!('speechSynthesis' in window)) return;
+
+        // Cancel any ongoing speech
+        window.speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(text);
+
+        // Try to find a high-quality "AI-like" voice
+        const voices = window.speechSynthesis.getVoices();
+        const preferredVoice = voices.find(v =>
+            v.name.includes('Google') || v.name.includes('Natural') || v.lang.startsWith('en-GB')
+        );
+
+        if (preferredVoice) {
+            utterance.voice = preferredVoice;
+        }
+
+        utterance.pitch = 1.0;
+        utterance.rate = 0.9; // Slightly slower for better clarity and mystery
+        utterance.volume = 1.0;
+
+        window.speechSynthesis.speak(utterance);
     }
 };
 

@@ -38,7 +38,8 @@ const rooms = [
         time: "10 min",
         description: "A mysterious 3D environment where mathematical clues are hidden in the shadows.",
         image: "https://images.unsplash.com/photo-1511210141604-e362fa7ca123?w=800",
-        color: "#10b981"
+        color: "#10b981",
+        viewMode: "3d"
     }
 ];
 

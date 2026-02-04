@@ -170,8 +170,11 @@ export const roomConfigs = {
     },
     4: {
         id: 4,
-        name: "The Geometric Chamber",
+        name: "Geometric Chamber",
         viewMode: "3d",
+        roomType: "VISUAL_SCENE",
+        renderer: "CANVAS",
+        background: "https://images.unsplash.com/photo-1511210141604-e362fa7ca123?w=1920",
         objective: "You wake up in a dimly lit stone room. To escape, you must find the hidden number that unlocks the door. Clues about circles and geometry are hidden in the shadows.",
         ambientColor: "#111111",
         atmosphere: "dark",

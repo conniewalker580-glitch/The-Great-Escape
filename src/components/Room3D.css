@@ -1,15 +1,41 @@
-.room-3d-container {
+.room-3d-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    background: #000;
+}
+
+.room-3d-canvas-container {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    overflow: hidden;
-    background: #000;
+    z-index: 1;
 }
 
-.room-3d-container canvas {
+.room-3d-ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.room-3d-ui-layer>* {
+    pointer-events: auto;
+}
+
+.room-3d-canvas-container canvas {
     display: block;
     width: 100% !important;
     height: 100% !important;
+}
+
+/* Ensure objective banner doesn't cover the whole screen */
+.objective-banner {
+    z-index: 100;
 }

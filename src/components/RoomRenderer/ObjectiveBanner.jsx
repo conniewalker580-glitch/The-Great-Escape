@@ -7,20 +7,23 @@
  */
 
 import { useState, useEffect } from 'react';
+import aiService from '../../services/aiService';
 import './ObjectiveBanner.css';
 
 const ObjectiveBanner = ({ objective, roomName }) => {
     const [isExpanded, setIsExpanded] = useState(true);
+    const [isMuted, setIsMuted] = useState(false);
 
-
-    // Auto-collapse after 5 seconds of inactivity
+    // Narrate objective when it changes
     useEffect(() => {
-        const collapseTimer = setTimeout(() => {
-            setIsExpanded(false);
-        }, 8000);
-
-        return () => clearTimeout(collapseTimer);
-    }, [objective]);
+        if (!isMuted && objective) {
+            // Short delay to allow visual transition
+            const speakTimer = setTimeout(() => {
+                aiService.speak(objective);
+            }, 500);
+            return () => clearTimeout(speakTimer);
+        }
+    }, [objective, isMuted]);
 
     const handleToggle = () => {
         setIsExpanded(!isExpanded);
@@ -40,14 +43,32 @@ const ObjectiveBanner = ({ objective, roomName }) => {
                     <span className="objective-banner__room-name">{roomName}</span>
                 </div>
 
-                <button
-                    className="objective-banner__toggle"
-                    aria-label={isExpanded ? 'Collapse objective' : 'Expand objective'}
-                >
-                    <span className={`objective-banner__toggle-icon ${isExpanded ? 'open' : ''}`}>
-                        ▼
-                    </span>
-                </button>
+                <div className="objective-banner__controls">
+                    <button
+                        className={`objective-banner__mute ${isMuted ? 'muted' : ''}`}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setIsMuted(!isMuted);
+                            if (!isMuted) window.speechSynthesis.cancel();
+                        }}
+                        aria-label={isMuted ? 'Unmute narration' : 'Mute narration'}
+                    >
+                        {isMuted ? '🔇' : '🔊'}
+                    </button>
+
+                    <button
+                        className="objective-banner__toggle"
+                        aria-label={isExpanded ? 'Collapse objective' : 'Expand objective'}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggle();
+                        }}
+                    >
+                        <span className={`objective-banner__toggle-icon ${isExpanded ? 'open' : ''}`}>
+                            ▼
+                        </span>
+                    </button>
+                </div>
             </div>
 
             {/* Objective Content - Expandable */}

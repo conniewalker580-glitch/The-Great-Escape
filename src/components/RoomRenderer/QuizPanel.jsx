@@ -6,8 +6,9 @@
  * Handles the submission and visual feedback for correct/incorrect answers.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useGameStore from '../../store/gameStore';
+import aiService from '../../services/aiService';
 import './QuizPanel.css';
 
 const QuizPanel = () => {
@@ -15,6 +16,20 @@ const QuizPanel = () => {
     const [selectedAnswer, setSelectedAnswer] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [feedback, setFeedback] = useState(null); // 'correct', 'incorrect'
+
+    const handleSpeakQuestion = () => {
+        if (currentRoom?.quiz?.question) {
+            aiService.speak(currentRoom.quiz.question);
+        }
+    };
+
+    // Auto-speak question on first render
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            handleSpeakQuestion();
+        }, 3000); // Delay so it doesn't overlap with objective narration
+        return () => clearTimeout(timer);
+    }, [currentRoom?.id]);
 
 
 
@@ -44,6 +59,13 @@ const QuizPanel = () => {
             <div className="quiz-panel__header">
                 <span className="quiz-panel__icon">❓</span>
                 <h3 className="quiz-panel__question">{question}</h3>
+                <button
+                    className="quiz-panel__audio-btn"
+                    onClick={handleSpeakQuestion}
+                    title="Hear Question"
+                >
+                    🔊
+                </button>
             </div>
 
             <div className="quiz-panel__options">

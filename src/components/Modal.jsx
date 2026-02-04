@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import useGameStore from '../store/gameStore';
 import AIImage from './AIImage';
+import aiService from '../services/aiService';
 import './Modal.css';
 
 /**
@@ -148,6 +149,17 @@ const Modal = () => {
                 setIsInteracting(false);
             }, 800);
         };
+
+        // Narration logic
+        useEffect(() => {
+            if (showDiscovery) {
+                const textToSpeak = detail.clue || hotspotInfo?.clue;
+                if (textToSpeak) aiService.speak(textToSpeak);
+            } else {
+                const textToSpeak = detail.discoveryText || hotspotInfo?.description;
+                if (textToSpeak) aiService.speak(textToSpeak);
+            }
+        }, [showDiscovery, hotspotId]);
 
         return (
             <div className="modal-overlay" onClick={closeModal}>
