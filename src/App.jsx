@@ -1,8 +1,17 @@
+/**
+ * The Great Escape - Main Application
+ * Created by C.S. Walker
+ * 
+ * A fully visual escape room game with interactive hotspots,
+ * 2D room backgrounds, and immersive puzzle-solving experience.
+ */
+
 import { useEffect, useState, Suspense } from 'react';
 import RoomSelector from './components/RoomSelector';
+import { RoomRenderer } from './components/RoomRenderer';
 import Room360 from './components/Room360';
 import Timer from './components/Timer';
-import Inventory from './components/Inventory';
+import ClueLog from './components/ClueLog';
 import Modal from './components/Modal';
 import HintButton from './components/HintButton';
 import Leaderboard from './components/Leaderboard';
@@ -14,18 +23,18 @@ function LoadingScreen() {
   return (
     <div className="loading-screen">
       <div className="loading-content">
-        <div className="loading-icon">🔐</div>
+        <div className="loading-icon">🔍</div>
         <h1>The Great Escape</h1>
         <div className="loading-bar">
           <div className="loading-progress"></div>
         </div>
-        <p>Loading escape room...</p>
+        <p>Loading adventure...</p>
       </div>
     </div>
   );
 }
 
-function GameView({ selectedRoom, onBackToMenu }) {
+function GameView({ selectedRoom, onBackToMenu, viewMode }) {
   const { resetGame } = useGameStore();
 
   const handleBackToMenu = () => {
@@ -39,23 +48,18 @@ function GameView({ selectedRoom, onBackToMenu }) {
         ← Back to Rooms
       </button>
 
-      <div className="room-title">
-        <span className="room-name">{selectedRoom.name}</span>
-        <span
-          className="room-difficulty"
-          style={{ background: selectedRoom.color }}
-        >
-          {selectedRoom.difficulty}
-        </span>
-      </div>
-
+      {/* Visual Room Renderer (2D) - Primary Quiz Mode */}
       <Suspense fallback={<LoadingScreen />}>
-        <Room360 />
+        {viewMode === '2d' ? (
+          <RoomRenderer room={selectedRoom} />
+        ) : (
+          <Room360 room={selectedRoom} />
+        )}
       </Suspense>
 
       <Timer />
       <HintButton />
-      <Inventory />
+      <ClueLog />
       <Modal />
       <Leaderboard />
     </div>
@@ -63,11 +67,11 @@ function GameView({ selectedRoom, onBackToMenu }) {
 }
 
 function App() {
-  const [currentView, setCurrentView] = useState('selector'); // 'selector' or 'game'
+  const [currentView, setCurrentView] = useState('selector');
   const [selectedRoom, setSelectedRoom] = useState(null);
+  const [viewMode, setViewMode] = useState('2d');
 
   useEffect(() => {
-    // Initialize anonymous auth
     signInAnonymousUser();
   }, []);
 
@@ -89,6 +93,7 @@ function App() {
         <GameView
           selectedRoom={selectedRoom}
           onBackToMenu={handleBackToMenu}
+          viewMode={viewMode}
         />
       )}
     </div>

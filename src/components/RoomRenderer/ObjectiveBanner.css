@@ -1,0 +1,282 @@
+/**
+ * ObjectiveBanner Styles
+ * Created by C.S. Walker
+ * 
+ * Styles for the objective/goal display at the top of the room.
+ */
+
+.objective-banner {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 700px;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    border-radius: 16px;
+    backdrop-filter: blur(12px);
+    overflow: hidden;
+    z-index: 150;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: slideDown 0.5s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.objective-banner.collapsed {
+    width: auto;
+    max-width: 400px;
+}
+
+/* Banner Header */
+.objective-banner__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.objective-banner__header:hover {
+    background: rgba(139, 92, 246, 0.1);
+}
+
+.objective-banner__icon-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.objective-banner__icon {
+    font-size: 1.8rem;
+    z-index: 2;
+}
+
+.objective-banner__pulse {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.4) 0%, transparent 70%);
+    border-radius: 50%;
+    animation: iconPulse 2s ease-in-out infinite;
+}
+
+@keyframes iconPulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 0.6;
+    }
+
+    50% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+}
+
+.objective-banner__title-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.objective-banner__title {
+    font-size: 1rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0;
+}
+
+.objective-banner__room-name {
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.objective-banner__toggle {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.objective-banner__toggle:hover {
+    color: #e2e8f0;
+}
+
+.objective-banner__toggle-icon {
+    display: inline-block;
+    font-size: 0.8rem;
+    transition: transform 0.3s ease;
+}
+
+.objective-banner__toggle-icon.open {
+    transform: rotate(180deg);
+}
+
+/* Content Section */
+.objective-banner__content {
+    max-height: 300px;
+    padding: 0 20px 20px;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.objective-banner.collapsed .objective-banner__content {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
+}
+
+.objective-banner__text-container {
+    padding: 16px;
+    background: rgba(139, 92, 246, 0.08);
+    border-radius: 12px;
+    border-left: 3px solid #8b5cf6;
+    margin-bottom: 16px;
+}
+
+.objective-banner__text {
+    color: #e2e8f0;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* Tips Section */
+.objective-banner__tips {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.objective-banner__tip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: rgba(6, 182, 212, 0.1);
+    border: 1px solid rgba(6, 182, 212, 0.2);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: #94a3b8;
+    transition: all 0.3s ease;
+}
+
+.objective-banner__tip:hover {
+    background: rgba(6, 182, 212, 0.15);
+    border-color: rgba(6, 182, 212, 0.4);
+    color: #e2e8f0;
+}
+
+.tip-icon {
+    font-size: 1rem;
+}
+
+/* Border Glow Effect */
+.objective-banner__border-glow {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg,
+            transparent,
+            #8b5cf6,
+            #06b6d4,
+            #8b5cf6,
+            transparent);
+    background-size: 200% 100%;
+    animation: borderGlow 3s linear infinite;
+}
+
+@keyframes borderGlow {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .objective-banner {
+        top: 70px;
+        width: 95%;
+        max-width: none;
+    }
+
+    .objective-banner__header {
+        padding: 12px 16px;
+    }
+
+    .objective-banner__icon {
+        font-size: 1.5rem;
+    }
+
+    .objective-banner__title {
+        font-size: 0.9rem;
+    }
+
+    .objective-banner__room-name {
+        font-size: 0.75rem;
+    }
+
+    .objective-banner__content {
+        padding: 0 16px 16px;
+    }
+
+    .objective-banner__text {
+        font-size: 0.85rem;
+    }
+
+    .objective-banner__tips {
+        gap: 8px;
+    }
+
+    .objective-banner__tip {
+        padding: 6px 10px;
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .objective-banner {
+        top: 60px;
+    }
+
+    .objective-banner.collapsed {
+        max-width: 280px;
+    }
+
+    .objective-banner__tips {
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .objective-banner__tip {
+        justify-content: center;
+    }
+}
