@@ -170,50 +170,26 @@ export const roomConfigs = {
     },
     4: {
         id: 4,
-        name: "Space Station Alpha",
-        panorama: "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=4096",
-        background: "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=1920&q=90",
-        objective: "The airlock code is based on the distance to the nearest star. Scan the data crystals.",
-        ambientColor: "#0d0d1a",
-        atmosphere: "space",
+        name: "The Geometric Chamber",
+        viewMode: "3d",
+        objective: "You wake up in a dimly lit stone room. To escape, you must find the hidden number that unlocks the door. Clues about circles and geometry are hidden in the shadows.",
+        ambientColor: "#111111",
+        atmosphere: "dark",
         quiz: {
-            question: "What is the airlock access code?",
-            correctAnswer: "422",
-            options: ["314", "422", "999", "101"]
+            question: "What number unlocks the door?",
+            correctAnswer: "314",
+            options: ["272", "314", "161", "888"]
         },
         hotspots: [
-            {
-                id: 'terminal',
-                x: 15, y: 35, width: 80, height: 90,
-                label: 'Main Computer', icon: '💻',
-                clue: "Log: 'Distance to Proxima Centauri is 4.22 light years.'",
-                description: 'Navigation logs.',
-                collectible: true, glowColor: '#06b6d4',
-                hintText: 'The code is a distance'
-            },
-            {
-                id: 'star-map',
-                x: 45, y: 20, width: 100, height: 80,
-                label: 'Astro-Chart', icon: '🗺️',
-                clue: "Airlock memo: 'The code is the light-year distance of the nearest star, ignoring decimals.'",
-                description: 'A map of the local cluster.',
-                collectible: true, glowColor: '#8b5cf6',
-                hintText: 'Look at the memo'
-            },
-            {
-                id: 'space-junk',
-                x: 70, y: 60, width: 60, height: 60,
-                label: 'Floating Debris', icon: '🛸',
-                clue: "Just a piece of hull from a Russian satellite. 'CCCP'.",
-                description: 'Space trash.',
-                collectible: true, glowColor: '#6b7280',
-                isMisleading: true
-            }
+            { id: 'spot1', position: [-2, 1, -4], clue: 'A book whispers: 3.14 is more than a number.', label: 'Dusty Book', icon: '📖' },
+            { id: 'spot2', position: [3, 0.3, 1], clue: 'A scratched symbol: π', label: 'Wall Scratch', icon: '✍️' },
+            { id: 'spot3', position: [0, 2, -3], clue: 'A painting hums: circles never end.', label: 'Faded Painting', icon: '🖼️' },
+            { id: 'spot4', position: [-3, 1, 2], clue: 'Wall carving: r × r × π', label: 'Carving', icon: '🗿' }
         ],
         hints: [
-            "Proxima Centauri is the nearest star.",
-            "4.22 becomes 422 for the keypad.",
-            "Look at the navigation logs for distances."
+            "Search the walls for mathematical symbols.",
+            "The symbols relate to the ratio of a circle's circumference to its diameter.",
+            "The answer is the first three digits of Pi."
         ]
     }
 };

@@ -33,12 +33,12 @@ const rooms = [
     },
     {
         id: 4,
-        name: "Space Station Alpha",
-        difficulty: "Expert",
-        time: "30 min",
-        description: "You're stranded on an abandoned space station. Restore power and find the escape pod before oxygen runs out.",
-        image: "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=800",
-        color: "#ef4444"
+        name: "Geometric Chamber",
+        difficulty: "Special",
+        time: "10 min",
+        description: "A mysterious 3D environment where mathematical clues are hidden in the shadows.",
+        image: "https://images.unsplash.com/photo-1511210141604-e362fa7ca123?w=800",
+        color: "#10b981"
     }
 ];
 

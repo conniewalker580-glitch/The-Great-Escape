@@ -10,6 +10,7 @@ import { useEffect, useState, Suspense } from 'react';
 import RoomSelector from './components/RoomSelector';
 import { RoomRenderer } from './components/RoomRenderer';
 import Room360 from './components/Room360';
+import Room3D from './components/Room3D';
 import Timer from './components/Timer';
 import ClueLog from './components/ClueLog';
 import Modal from './components/Modal';
@@ -52,9 +53,11 @@ function GameView({ selectedRoom, onBackToMenu, viewMode }) {
         ← Back to Rooms
       </button>
 
-      {/* Visual Room Renderer (2D) - Primary Quiz Mode */}
+      {/* Visual Room Renderer (2D, 360, or 3D) */}
       <Suspense fallback={<LoadingScreen />}>
-        {viewMode === '2d' ? (
+        {selectedRoom.viewMode === '3d' ? (
+          <Room3D room={selectedRoom} />
+        ) : viewMode === '2d' ? (
           <RoomRenderer room={selectedRoom} />
         ) : (
           <Room360 room={selectedRoom} />
