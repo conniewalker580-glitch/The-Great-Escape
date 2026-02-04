@@ -181,3 +181,82 @@ body {
         font-size: 0.85rem;
     }
 }
+
+/* Game View Styles */
+.game-view {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    overflow: hidden;
+}
+
+.back-btn {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.9));
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    border-radius: 12px;
+    color: #e2e8f0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    z-index: 200;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+    transform: translateX(-4px);
+    border-color: #8b5cf6;
+    box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+}
+
+.room-title {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.9));
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 16px;
+    z-index: 150;
+    backdrop-filter: blur(10px);
+}
+
+.room-name {
+    font-size: 1.2rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.room-difficulty {
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .back-btn {
+        padding: 10px 14px;
+        font-size: 0.8rem;
+    }
+
+    .room-title {
+        top: 70px;
+        padding: 10px 16px;
+    }
+
+    .room-name {
+        font-size: 1rem;
+    }
+}
