@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Initialize APIs with environment variables
 // Note: In a production app, these should be handled via a secure backend
-const hf = new HfInference(import.meta.env.VITE_HF_TOKEN);
+const hf = new HfInference(import.meta.env.VITE_HUGGINGFACE_TOKEN || import.meta.env.VITE_HF_TOKEN);
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 
 /**
@@ -52,14 +52,22 @@ export const aiService = {
 
             const prompt = `
                 Create a JSON configuration for an escape room with the theme: "${theme}".
+                
+                PUZZLE LOGIC RULES:
+                1. The 'objective' must provide clear context (who is in the room, why it is locked, what the specific goal is).
+                2. The 'quiz.question' must be a logical step to escaping (e.g., finding a passcode, identifying a key element, solving a mechanism). 
+                3. Avoid vague questions like "Who was here?". Instead use "What is the passcode found in the notes?".
+                4. All 'hotspots' must contain clues that directly lead to solving the 'quiz.question'.
+                5. Ensure the 'correctAnswer' is uniquely identifiable from the clues provided in the hotspots.
+
                 The configuration MUST follow this exact structure:
                 {
                     "name": "Room Name",
-                    "objective": "A short, mysterious objective",
+                    "objective": "A descriptive, mysterious objective that sets the scene and goal",
                     "ambientColor": "#hexColor",
                     "atmosphere": "dark/neon/warm/space",
                     "quiz": {
-                        "question": "A puzzle question based on the room's clues",
+                        "question": "A logical puzzle question based on the room's clues",
                         "correctAnswer": "The answer",
                         "options": ["Option 1", "Option 2", "Option 3", "Option 4"]
                     },
@@ -68,14 +76,14 @@ export const aiService = {
                             "id": "unique-id",
                             "label": "Item Name",
                             "icon": "emoji",
-                            "clue": "A hint or piece of information found here",
+                            "clue": "A specific piece of information that helps solve the puzzle",
                             "description": "Short description of the item",
                             "collectible": true,
                             "glowColor": "#hexColor",
-                            "position": [x, y, z] // For 3D space, coordinates between -10 and 10
+                            "position": [x, y, z]
                         }
                     ],
-                    "hints": ["Hint 1", "Hint 2", "Hint 3"]
+                    "hints": ["Clue-based Hint 1", "Step-by-step Hint 2", "Direct solution Hint 3"]
                 }
                 Provide ONLY the JSON string. Ensure there are 3-4 hotspots and 3 hints.
             `;

@@ -13,11 +13,11 @@ export const roomConfigs = {
         name: "The Victorian Study",
         panorama: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=4096",
         background: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1920&q=90",
-        objective: "The Master of the House has left a secret code. Can you find the 4-digit year he was born to unlock the next room?",
+        objective: "Professor Thorne has locked the exit. To escape this study, you must find the 4-digit code for the wall safe—which he always sets to his own birth year.",
         ambientColor: "#2a1810",
         atmosphere: "dark",
         quiz: {
-            question: "What year was the Master of the House born?",
+            question: "What is the 4-digit combination for the wall safe?",
             correctAnswer: "1874",
             options: ["1865", "1874", "1882", "1890"]
         },
@@ -70,11 +70,11 @@ export const roomConfigs = {
         name: "The Scientist's Lab",
         panorama: "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=4096",
         background: "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=1920&q=90",
-        objective: "The reactor is unstable! Identify the missing element symbol to stabilize the system.",
+        objective: "The emergency containment system has been triggered! To override the lockdown, you must identify the chemical symbol of the element needed to stabilize the core.",
         ambientColor: "#0a1628",
         atmosphere: "neon",
         quiz: {
-            question: "Which element symbol stabilizes the reactor?",
+            question: "Which element symbol overrides the lockdown?",
             correctAnswer: "Ag",
             options: ["Au", "Ag", "Fe", "Cu"]
         },
