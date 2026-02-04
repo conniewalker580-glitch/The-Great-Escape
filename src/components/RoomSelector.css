@@ -1,8 +1,13 @@
 .room-selector {
+    width: 100%;
     min-height: 100vh;
+    height: auto;
     background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
-    overflow-y: auto;
+    overflow-y: scroll;
     overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    padding-bottom: 40px;
 }
 
 /* Header */
