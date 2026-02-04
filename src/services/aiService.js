@@ -22,7 +22,7 @@ export const aiService = {
             if (type === 'panorama') {
                 enhancedPrompt = `${prompt}, 360 degree equirectangular panorama, VR environment, seamless, wide angle, photorealistic, high resolution, 8k`;
             } else if (type === 'room') {
-                enhancedPrompt = `${prompt}, photorealistic escape room background, high detail, atmospheric lighting, 4k, cinematic composition`;
+                enhancedPrompt = `${prompt}, interior view of a highly detailed room, filled with interactive objects like bookshelves, a clock on the wall, a notepad and pen on a desk, a coffee cup, atmospheric lighting, soft shadows, cinematic composition, photorealistic, 4k, architectural photography style`;
             } else if (type === 'item') {
                 enhancedPrompt = `${prompt}, isolated object, professional product photography, plain dark background, high detail, macro, 4k`;
             }
@@ -51,41 +51,41 @@ export const aiService = {
             const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
             const prompt = `
-                Create a JSON configuration for an escape room with the theme: "${theme}".
+                Create a JSON configuration for a highly immersive, narrative-driven escape room with the theme: "${theme}".
                 
-                PUZZLE LOGIC RULES:
-                1. The 'objective' must provide clear context (who is in the room, why it is locked, what the specific goal is).
-                2. The 'quiz.question' must be a logical step to escaping (e.g., finding a passcode, identifying a key element, solving a mechanism). 
-                3. Avoid vague questions like "Who was here?". Instead use "What is the passcode found in the notes?".
-                4. All 'hotspots' must contain clues that directly lead to solving the 'quiz.question'.
-                5. Ensure the 'correctAnswer' is uniquely identifiable from the clues provided in the hotspots.
+                STORYTELLING AND DESIGN RULES:
+                1. NARRATIVE OBJECTIVE: The 'objective' must be written as a story or mission (e.g., "Mrs. Potts needs to retrieve a family heirloom from the wall safe before the dinner party. Help her piece together the 4-digit code her husband hid around the study.")
+                2. ENVIRONMENTAL CLUES: Instead of direct questions, frame the 'quiz.question' as a narrative challenge (e.g., "What is the final sequence Mrs. Potts needs for the safe?").
+                3. INTERACTIVE ITEMS: The 'hotspots' should be realistic objects found in the room (e.g., "Bookshelf", "Grandfather Clock", "Spilled Coffee Cup", "Leather Notepad").
+                4. EMBEDDED CLUES: Each hotspot description and clue should feel like a discovery (e.g., "A note tucked under the coffee cup reads 'The first digit is the hour the clock stopped'").
+                5. PUZZLE FLOW: Ensure the clues from the 3-4 hotspots logically lead to the 'correctAnswer'.
 
                 The configuration MUST follow this exact structure:
                 {
-                    "name": "Room Name",
-                    "objective": "A descriptive, mysterious objective that sets the scene and goal",
+                    "name": "Intriguing Room Name",
+                    "objective": "A story-driven mission statement that establishes a character or urgent need",
                     "ambientColor": "#hexColor",
-                    "atmosphere": "dark/neon/warm/space",
+                    "atmosphere": "mysterious/cozy/industrial/tense",
                     "quiz": {
-                        "question": "A logical puzzle question based on the room's clues",
+                        "question": "A narrative-styled challenge that requires the found clues",
                         "correctAnswer": "The answer",
                         "options": ["Option 1", "Option 2", "Option 3", "Option 4"]
                     },
                     "hotspots": [
                         {
                             "id": "unique-id",
-                            "label": "Item Name",
-                            "icon": "emoji",
-                            "clue": "A specific piece of information that helps solve the puzzle",
-                            "description": "Short description of the item",
+                            "label": "Object Name (e.g., Mahogany Desk)",
+                            "icon": "emoji related to object",
+                            "clue": "A narrative clue found on/in this object",
+                            "description": "Atmospheric description of what the user sees when clicking",
                             "collectible": true,
                             "glowColor": "#hexColor",
                             "position": [x, y, z]
                         }
                     ],
-                    "hints": ["Clue-based Hint 1", "Step-by-step Hint 2", "Direct solution Hint 3"]
+                    "hints": ["Story-based nudge 1", "Specific clue reminder 2", "The direct logical link 3"]
                 }
-                Provide ONLY the JSON string. Ensure there are 3-4 hotspots and 3 hints.
+                Provide ONLY the JSON string. Ensure there are exactly 4 hotspots and 3 hints.
             `;
 
             const result = await model.generateContent(prompt);

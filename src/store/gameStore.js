@@ -10,59 +10,58 @@ import aiService from '../services/aiService';
 export const roomConfigs = {
     1: {
         id: 1,
-        name: "The Victorian Study",
+        name: "Mrs. Potts' Secret Study",
         panorama: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=4096",
         background: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1920&q=90",
-        objective: "Professor Thorne has locked the exit. To escape this study, you must find the 4-digit code for the wall safe—which he always sets to his own birth year.",
+        objective: "Mrs. Potts needs to retrieve a sensitive document from the wall safe. Help her find the clues to cracking the 4-digit code her husband, Mr. Potts, has hidden around the room.",
         ambientColor: "#2a1810",
-        atmosphere: "dark",
+        atmosphere: "cozy",
         quiz: {
-            question: "What is the 4-digit combination for the wall safe?",
+            question: "What is the 4-digit combination Mrs. Potts needs for the wall safe?",
             correctAnswer: "1874",
             options: ["1865", "1874", "1882", "1890"]
         },
         hotspots: [
             {
-                id: 'old-book',
+                id: 'bookshelf',
                 x: 15, y: 40, width: 80, height: 100,
-                label: 'Leather Journal', icon: '📚',
-                clue: "Journal Entry: 'I started my apprenticeship exactly 20 years before the Great War (1914).'",
-                description: 'A personal journal with a lot of dates.',
+                label: 'Mahogany Bookshelf', icon: '📚',
+                clue: "A note tucked between two books: 'The first two digits are the year of our wedding.'",
+                description: 'A grand bookshelf filled with dusty volumes.',
                 collectible: true, glowColor: '#8b5cf6',
-                hintText: 'Check the dates in the journal'
+                hintText: 'Check the notes in the bookshelf'
             },
             {
-                id: 'painting',
-                x: 45, y: 20, width: 120, height: 100,
-                label: 'Family Portrait', icon: '🖼️',
-                clue: "A small inscription: 'Painted on my 20th Birthday, 1894.'",
-                description: 'A painting of a young man.',
+                id: 'grandfather-clock',
+                x: 45, y: 20, width: 80, height: 120,
+                label: 'Grandfather Clock', icon: '🕰️',
+                clue: "The clock has stopped at exactly 7:04. A scratched marking on the back says 'Seconds and Minutes'.",
+                description: 'An ancient clock that no longer ticks.',
                 collectible: true, glowColor: '#06b6d4',
-                hintText: 'Look for an inscription on the frame'
+                hintText: 'Look at the time the clock stopped'
             },
             {
-                id: 'decorative-vase',
+                id: 'coffee-cup',
                 x: 75, y: 55, width: 50, height: 60,
-                label: 'Antique Vase', icon: '🏺',
-                clue: "Just a dusty old vase from the Ming Dynasty. Nothing useful here.",
-                description: 'A beautiful but irrelevant decorative piece.',
-                collectible: true, glowColor: '#6b7280', // Gray for neutral
-                hintText: 'Not everything is a clue',
-                isMisleading: true
+                label: 'Spilled Coffee Cup', icon: '☕',
+                clue: "Under the saucer, there's a damp napkin with '18--' scribbled on it.",
+                description: 'A cup of coffee that was left in a hurry.',
+                collectible: true, glowColor: '#6b7280',
+                hintText: 'Lift the coffee cup saucer'
             },
             {
                 id: 'safe',
                 x: 85, y: 35, width: 70, height: 80,
                 label: 'Wall Safe', icon: '🔐',
-                description: 'Requires the birth year to open.',
+                description: 'A heavy metal safe hidden behind a painting.',
                 collectible: false, glowColor: '#22c55e',
-                hintText: 'Summon the clues to find the year'
+                hintText: 'Piece together the wedding year (18) and the clock time (74)'
             }
         ],
         hints: [
-            "Check the family portrait for a specific date.",
-            "The journal mentioned the Great War of 1914. Subtract 20.",
-            "If he was 20 in 1894, when was he born?"
+            "Check the coffee cup for the first half of the year.",
+            "The grandfather clock's time provides the final two digits.",
+            "Combine the scribbled '18' with the clock's '74' to get 1874."
         ]
     },
     2: {

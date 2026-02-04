@@ -1,18 +1,69 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="description" content="The Great Escape - An immersive 360° escape room experience. Solve puzzles, find clues, and escape before time runs out!" />
-    <meta name="theme-color" content="#0f172a" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <title>The Great Escape - 360° Escape Room</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Single Escape Room</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+
+    #ui {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      border-radius: 8px;
+      pointer-events: auto;
+      z-index: 10;
+    }
+
+    input {
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #444;
+      background: #222;
+      color: white;
+      margin-bottom: 10px;
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    button {
+      padding: 8px 16px;
+      background: #444;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #666;
+    }
+
+    #message {
+      margin-top: 10px;
+      height: 1.2em;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="ui">
+    <p id="question">What number unlocks the door?</p>
+    <input id="answerInput" placeholder="Enter answer" />
+    <button id="submitBtn">Unlock</button>
+    <p id="message"></p>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+
 </html>
