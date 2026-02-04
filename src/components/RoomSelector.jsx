@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import useGameStore from '../store/gameStore';
+import AIImage from './AIImage';
 import './RoomSelector.css';
 
 const rooms = [
@@ -42,14 +44,18 @@ const rooms = [
 
 const RoomSelector = ({ onSelectRoom }) => {
     const [hoveredRoom, setHoveredRoom] = useState(null);
+    const [aiTheme, setAiTheme] = useState('');
+    const { generateDynamicRoom, isGenerating } = useGameStore();
 
-    const getDifficultyColor = (difficulty) => {
-        switch (difficulty) {
-            case 'Easy': return '#22c55e';
-            case 'Medium': return '#f59e0b';
-            case 'Hard': return '#ef4444';
-            case 'Expert': return '#dc2626';
-            default: return '#8b5cf6';
+    const handleGenerateAiRoom = async (e) => {
+        e.preventDefault();
+        if (!aiTheme.trim() || isGenerating) return;
+
+        const room = await generateDynamicRoom(aiTheme);
+        if (room) {
+            onSelectRoom(room);
+        } else {
+            alert('Failed to generate room. Please check your API keys in the .env file.');
         }
     };
 
@@ -74,22 +80,21 @@ const RoomSelector = ({ onSelectRoom }) => {
                             onClick={() => onSelectRoom(room)}
                             style={{ '--accent-color': room.color }}
                         >
-                            <div className="room-image">
-                                <img src={room.image} alt={room.name} />
-                                <div className="room-overlay">
-                                    <span className="play-icon">▶</span>
+                            <div className="room-card-image">
+                                <AIImage
+                                    prompt={`${room.name}: ${room.description}`}
+                                    type="room"
+                                    fallbackUrl={room.image}
+                                    alt={room.name}
+                                />
+                                <div className="room-badge" style={{ backgroundColor: room.color }}>
+                                    {room.difficulty}
                                 </div>
                             </div>
 
                             <div className="room-info">
                                 <div className="room-header">
                                     <h3>{room.name}</h3>
-                                    <span
-                                        className="difficulty-badge"
-                                        style={{ background: getDifficultyColor(room.difficulty) }}
-                                    >
-                                        {room.difficulty}
-                                    </span>
                                 </div>
 
                                 <p className="room-description">{room.description}</p>
@@ -107,6 +112,38 @@ const RoomSelector = ({ onSelectRoom }) => {
                             </div>
                         </div>
                     ))}
+                </div>
+            </div>
+
+            <div className="ai-generator-section">
+                <div className="ai-generator-card">
+                    <div className="ai-badge">AI POWERED</div>
+                    <h2>✨ Generate Custom Room</h2>
+                    <p>Describe any theme (e.g., "Underwater Bioshock Lab", "Cyberpunk Ramen Shop") and our AI will create a unique escape room just for you!</p>
+
+                    <form onSubmit={handleGenerateAiRoom} className="ai-form">
+                        <input
+                            type="text"
+                            placeholder="Describe your escape room theme..."
+                            value={aiTheme}
+                            onChange={(e) => setAiTheme(e.target.value)}
+                            disabled={isGenerating}
+                            className="ai-input"
+                        />
+                        <button type="submit" className="ai-generate-btn" disabled={isGenerating}>
+                            {isGenerating ? (
+                                <>
+                                    <span className="ai-spinner">⭐</span>
+                                    Generating...
+                                </>
+                            ) : (
+                                <>
+                                    <span className="ai-icon">🚀</span>
+                                    Generate & Enter
+                                </>
+                            )}
+                        </button>
+                    </form>
                 </div>
             </div>
 

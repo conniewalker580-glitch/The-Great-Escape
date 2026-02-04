@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import useGameStore from '../store/gameStore';
+import AIImage from './AIImage';
 import './Inventory.css';
 
 // Item images for visual display
@@ -74,15 +75,13 @@ const Inventory = () => {
                         >
                             {/* Item thumbnail */}
                             <div className="item-thumbnail">
-                                {itemImages[item.id] ? (
-                                    <img
-                                        src={itemImages[item.id]}
-                                        alt={item.name}
-                                        className="thumbnail-img"
-                                    />
-                                ) : (
-                                    <span className="item-icon">{item.icon}</span>
-                                )}
+                                <AIImage
+                                    prompt={item.description || item.name}
+                                    type="item"
+                                    fallbackUrl={itemImages[item.id]}
+                                    alt={item.name}
+                                    className="thumbnail-img"
+                                />
                             </div>
 
                             {/* Item info */}
@@ -108,14 +107,12 @@ const Inventory = () => {
             {expandedItem && isExpanded && (
                 <div className="expanded-preview">
                     <div className="preview-image">
-                        {itemImages[expandedItem.id] ? (
-                            <img
-                                src={itemImages[expandedItem.id]?.replace('w=200', 'w=400')}
-                                alt={expandedItem.name}
-                            />
-                        ) : (
-                            <div className="preview-icon">{expandedItem.icon}</div>
-                        )}
+                        <AIImage
+                            prompt={expandedItem.description || expandedItem.name}
+                            type="item"
+                            fallbackUrl={itemImages[expandedItem.id]?.replace('w=200', 'w=400')}
+                            alt={expandedItem.name}
+                        />
                     </div>
                     <div className="preview-info">
                         <h4>{expandedItem.name}</h4>

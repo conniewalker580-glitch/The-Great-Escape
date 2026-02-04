@@ -4,11 +4,11 @@ import './HintButton.css';
 
 const HintButton = () => {
     const [showHint, setShowHint] = useState(false);
-    const { hintsUsed, useHint, getCurrentHint, gameState } = useGameStore();
+    const { hintsUsed, showNextHint, getCurrentHint, gameState } = useGameStore();
 
     const handleHintClick = () => {
         if (!showHint) {
-            useHint();
+            showNextHint();
         }
         setShowHint(!showHint);
     };

@@ -1,5 +1,5 @@
-import { useRef, useState, useMemo, Suspense } from 'react';
-import { Canvas, useFrame, useThree, useLoader } from '@react-three/fiber';
+import { useRef, useState, useMemo, useEffect, Suspense } from 'react';
+import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { OrbitControls, Html, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 import useGameStore, { roomConfigs } from '../store/gameStore';
@@ -111,14 +111,13 @@ function Hotspot({
 
 // 360 Sphere with dynamic panoramic texture
 function PanoramaSphere({ panoramaUrl }) {
-    const texture = useLoader(THREE.TextureLoader, panoramaUrl);
-
-    useMemo(() => {
-        texture.mapping = THREE.EquirectangularReflectionMapping;
-        texture.colorSpace = THREE.SRGBColorSpace;
-        texture.minFilter = THREE.LinearFilter;
-        texture.magFilter = THREE.LinearFilter;
-    }, [texture]);
+    const texture = useLoader(THREE.TextureLoader, panoramaUrl, (tex) => {
+        tex.mapping = THREE.EquirectangularReflectionMapping;
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.minFilter = THREE.LinearFilter;
+        tex.magFilter = THREE.LinearFilter;
+        tex.needsUpdate = true;
+    });
 
     return (
         <mesh scale={[-1, 1, 1]}>
@@ -135,10 +134,16 @@ function AtmosphereParticles({ color }) {
 
     const positions = useMemo(() => {
         const pos = new Float32Array(count * 3);
+        const seed = 42;
+        const pseudoRandom = (n) => {
+            const x = Math.sin(n) * 10000;
+            return x - Math.floor(x);
+        };
+
         for (let i = 0; i < count; i++) {
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos(2 * Math.random() - 1);
-            const radius = 20 + Math.random() * 40;
+            const theta = pseudoRandom(i + seed) * Math.PI * 2;
+            const phi = Math.acos(2 * pseudoRandom(i + seed + 0.1) - 1);
+            const radius = 20 + pseudoRandom(i + seed + 0.2) * 40;
             pos[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
             pos[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
             pos[i * 3 + 2] = radius * Math.cos(phi);
@@ -268,7 +273,7 @@ const Room360 = ({ room }) => {
     const roomConfig = roomConfigs[room?.id] || roomConfigs[1];
 
     // Set current room in store if not already set
-    useMemo(() => {
+    useEffect(() => {
         if (room && (!currentRoom || currentRoom.id !== room.id)) {
             setCurrentRoom(room);
         }

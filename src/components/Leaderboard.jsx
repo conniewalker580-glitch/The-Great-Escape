@@ -10,16 +10,18 @@ const Leaderboard = () => {
     const [loading, setLoading] = useState(false);
     const { elapsedTime, gameState, resetGame } = useGameStore();
 
-    useEffect(() => {
-        if (gameState.escaped) {
-            fetchLeaderboard();
-        }
-    }, [gameState.escaped]);
-
     const fetchLeaderboard = async () => {
         const data = await getLeaderboard();
         setScores(data);
     };
+
+    useEffect(() => {
+        if (gameState.escaped) {
+            getLeaderboard().then(data => {
+                setScores(data);
+            });
+        }
+    }, [gameState.escaped]);
 
     const handleSubmit = async () => {
         if (submitted) return;

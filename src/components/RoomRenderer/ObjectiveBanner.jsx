@@ -11,7 +11,7 @@ import './ObjectiveBanner.css';
 
 const ObjectiveBanner = ({ objective, roomName }) => {
     const [isExpanded, setIsExpanded] = useState(true);
-    const [isVisible, setIsVisible] = useState(true);
+
 
     // Auto-collapse after 5 seconds of inactivity
     useEffect(() => {

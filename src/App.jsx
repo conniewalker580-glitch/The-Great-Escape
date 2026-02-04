@@ -35,12 +35,16 @@ function LoadingScreen() {
 }
 
 function GameView({ selectedRoom, onBackToMenu, viewMode }) {
-  const { resetGame } = useGameStore();
+  const { resetGame, isGenerating, currentRoom } = useGameStore();
 
   const handleBackToMenu = () => {
     resetGame();
     onBackToMenu();
   };
+
+  if (isGenerating && !currentRoom) {
+    return <LoadingScreen />;
+  }
 
   return (
     <div className="game-view">
@@ -69,7 +73,7 @@ function GameView({ selectedRoom, onBackToMenu, viewMode }) {
 function App() {
   const [currentView, setCurrentView] = useState('selector');
   const [selectedRoom, setSelectedRoom] = useState(null);
-  const [viewMode, setViewMode] = useState('2d');
+  const [viewMode] = useState('2d');
 
   useEffect(() => {
     signInAnonymousUser();

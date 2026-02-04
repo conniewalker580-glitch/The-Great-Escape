@@ -6,14 +6,12 @@
  * Click detection is tied to visible elements rather than text.
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import './VisualHotspot.css';
 
 const VisualHotspot = ({
     hotspot,
     isCollected,
-    canInteract,
-    isNextTarget, // Ignored now to avoid highlighting
     isActive,
     onClick
 }) => {

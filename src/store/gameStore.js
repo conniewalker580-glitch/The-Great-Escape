@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import aiService from '../services/aiService';
+
 
 /**
  * Room configurations with Quiz Logic and Visual Clues
@@ -239,10 +241,33 @@ const useGameStore = create((set, get) => ({
 
     activeModal: null,
     hintsUsed: 0,
+    isGenerating: false,
 
     // Actions
-    setCurrentRoom: (room) => {
-        const fullRoomConfig = roomConfigs[room.id] || room;
+    setCurrentRoom: async (room) => {
+        let fullRoomConfig = roomConfigs[room.id] || room;
+
+        // If it's a static room with Unsplash URLs, upgrade it to HF visual
+        if (!fullRoomConfig.isDynamic && fullRoomConfig.background?.includes('unsplash')) {
+            set({ isGenerating: true });
+            try {
+                const prompt = `${fullRoomConfig.name}: ${fullRoomConfig.objective}`;
+                const hfVisual = await aiService.generateVisual(prompt, 'panorama');
+                if (hfVisual) {
+                    fullRoomConfig = {
+                        ...fullRoomConfig,
+                        background: hfVisual,
+                        panorama: hfVisual,
+                        isHFUpgraded: true
+                    };
+                }
+            } catch (err) {
+                console.error("Failed to upgrade static room to HF:", err);
+            } finally {
+                set({ isGenerating: false });
+            }
+        }
+
         set({
             currentRoom: fullRoomConfig,
             collectedItems: [],
@@ -296,7 +321,7 @@ const useGameStore = create((set, get) => ({
     startTimer: () => set({ timerStarted: true }),
     updateElapsedTime: (time) => set({ elapsedTime: time }),
 
-    useHint: () => set((state) => ({
+    showNextHint: () => set((state) => ({
         hintsUsed: Math.min(state.hintsUsed + 1, 3)
     })),
 
@@ -309,7 +334,52 @@ const useGameStore = create((set, get) => ({
         elapsedTime: 0,
         activeModal: null,
         hintsUsed: 0,
+        isGenerating: false
     }),
+
+    generateDynamicRoom: async (theme, is360 = true) => {
+        set({ isGenerating: true });
+        try {
+            // 1. Generate Room Metadata via Gemini
+            const roomConfig = await aiService.generateRoomContent(theme);
+            if (!roomConfig) throw new Error("Failed to generate room content");
+
+            // 2. Generate Room Visual via Hugging Face
+            const panoramaUrl = await aiService.generateVisual(theme, is360 ? 'panorama' : 'room');
+
+            // 3. Assemble full room config
+            const fullRoom = {
+                ...roomConfig,
+                id: `dynamic-${Date.now()}`,
+                panorama: panoramaUrl || "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=4096", // Fallback
+                background: panoramaUrl || "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1920",
+                isDynamic: true,
+                imagePrompts: {
+                    room: theme,
+                    items: roomConfig.hotspots.reduce((acc, h) => {
+                        acc[h.id] = h.description || h.label;
+                        return acc;
+                    }, {})
+                }
+            };
+
+            // 4. Update store and set as current room
+            set({
+                currentRoom: fullRoom,
+                collectedItems: [],
+                foundClues: [],
+                hintsUsed: 0,
+                isGenerating: false,
+                gameState: { escaped: false, lastAnswerCorrect: null }
+            });
+
+            return fullRoom;
+        } catch (error) {
+            console.error("Dynamic room generation failed:", error);
+            set({ isGenerating: false });
+            return null;
+        }
+    },
 
     // Get current hint
     getCurrentHint: () => {

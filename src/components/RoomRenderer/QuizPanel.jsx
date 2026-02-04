@@ -6,21 +6,17 @@
  * Handles the submission and visual feedback for correct/incorrect answers.
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import useGameStore from '../../store/gameStore';
 import './QuizPanel.css';
 
 const QuizPanel = () => {
-    const { currentRoom, foundClues, submitAnswer, gameState } = useGameStore();
+    const { currentRoom, foundClues, submitAnswer } = useGameStore();
     const [selectedAnswer, setSelectedAnswer] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [feedback, setFeedback] = useState(null); // 'correct', 'incorrect'
 
-    // Reset state when currentRoom changes
-    useEffect(() => {
-        setSelectedAnswer(null);
-        setFeedback(null);
-    }, [currentRoom]);
+
 
     if (!currentRoom || !currentRoom.quiz) return null;
 

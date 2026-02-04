@@ -23,7 +23,6 @@ const RoomRenderer = ({ room }) => {
         setCurrentRoom,
         currentRoom,
         setActiveModal,
-        updateGameState,
         gameState
     } = useGameStore();
 
@@ -33,8 +32,8 @@ const RoomRenderer = ({ room }) => {
     const [activeHotspot, setActiveHotspot] = useState(null);
     const [showInstructions, setShowInstructions] = useState(true);
 
-    // Get room configuration from centralized store
-    const roomConfig = roomConfigs[room?.id] || null;
+    // Get room configuration from centralized store (handles both static and dynamic rooms)
+    const roomConfig = currentRoom && currentRoom.id === room?.id ? currentRoom : (roomConfigs[room?.id] || null);
 
     // Set current room when component mounts
     useEffect(() => {
@@ -179,7 +178,7 @@ const RoomRenderer = ({ room }) => {
             </div>
 
             {/* Quiz Panel - The central puzzle interaction */}
-            <QuizPanel />
+            <QuizPanel key={currentRoom?.id} />
 
             {/* Stealth HUD: Only shows count, no guidance bar */}
             <div className="room-renderer__hud">

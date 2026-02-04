@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import useGameStore, { roomConfigs } from '../store/gameStore';
+import { useState, useMemo } from 'react';
+import useGameStore from '../store/gameStore';
+import AIImage from './AIImage';
 import './Modal.css';
 
 /**
@@ -77,18 +78,21 @@ const Modal = () => {
     const {
         activeModal,
         closeModal,
-        currentRoom,
-        updateGameState
+        currentRoom
     } = useGameStore();
 
     const [isInteracting, setIsInteracting] = useState(false);
     const [showDiscovery, setShowDiscovery] = useState(false);
 
-    useEffect(() => {
-        if (activeModal) {
-            setIsInteracting(false);
-            setShowDiscovery(false);
-        }
+    const confetti = useMemo(() => {
+        if (activeModal !== 'escape-success') return [];
+        const colors = ['#8b5cf6', '#06b6d4', '#22c55e', '#fbbf24', '#ef4444'];
+        return [...Array(20)].map((_, i) => ({
+            id: i,
+            delay: `${(i * 0.1) % 2}s`,
+            x: `${(i * 7) % 100}%`,
+            color: colors[i % colors.length]
+        }));
     }, [activeModal]);
 
     if (!activeModal) return null;
@@ -106,11 +110,11 @@ const Modal = () => {
                             <p>Excellent deduction in the {currentRoom?.name}.</p>
                         </div>
                         <div className="confetti">
-                            {[...Array(20)].map((_, i) => (
-                                <div key={i} className="confetti-piece" style={{
-                                    '--delay': `${Math.random() * 2}s`,
-                                    '--x': `${Math.random() * 100}%`,
-                                    '--color': ['#8b5cf6', '#06b6d4', '#22c55e', '#fbbf24', '#ef4444'][Math.floor(Math.random() * 5)]
+                            {confetti.map((c) => (
+                                <div key={c.id} className="confetti-piece" style={{
+                                    '--delay': c.delay,
+                                    '--x': c.x,
+                                    '--color': c.color
                                 }} />
                             ))}
                         </div>
@@ -156,11 +160,13 @@ const Modal = () => {
 
                         <div className="modal-body clue-detail-body">
                             <div className={`item-image-container ${isInteracting ? 'inspecting' : ''} ${isMisleading ? 'misleading-glow' : ''}`}>
-                                {detail.image ? (
-                                    <img src={detail.image} alt={detail.title} className="item-image" />
-                                ) : (
-                                    <div className="empty-clue-visual">{detail.icon}</div>
-                                )}
+                                <AIImage
+                                    prompt={detail.clue || detail.discoveryText || detail.title}
+                                    type="item"
+                                    fallbackUrl={detail.image}
+                                    alt={detail.title}
+                                    className="item-image"
+                                />
                                 {isInteracting && (
                                     <div className="inspection-overlay">
                                         <div className="inspection-scanner"></div>

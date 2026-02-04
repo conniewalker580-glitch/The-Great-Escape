@@ -48,29 +48,43 @@ const atmosphereThemes = {
 const PlaceholderGenerator = ({ roomName, atmosphere = 'dark' }) => {
     const theme = atmosphereThemes[atmosphere] || atmosphereThemes.dark;
 
+    const pseudoRandom = (n) => {
+        const x = Math.sin(n) * 10000;
+        return x - Math.floor(x);
+    };
+
     // Generate random star positions for space theme
     const stars = useMemo(() => {
         if (atmosphere !== 'space') return [];
         return [...Array(100)].map((_, i) => ({
             id: i,
-            x: Math.random() * 100,
-            y: Math.random() * 100,
-            size: Math.random() * 3 + 1,
-            delay: Math.random() * 3,
-            duration: Math.random() * 2 + 1
+            x: pseudoRandom(i) * 100,
+            y: pseudoRandom(i + 0.1) * 100,
+            size: pseudoRandom(i + 0.2) * 3 + 1,
+            delay: pseudoRandom(i + 0.3) * 3,
+            duration: pseudoRandom(i + 0.4) * 2 + 1
         }));
     }, [atmosphere]);
 
-    // Generate floating icons
+    // Generate floating icons with memoized deterministic offsets
     const floatingIcons = useMemo(() => {
         return theme.icons.map((icon, i) => ({
             icon,
-            x: 10 + (i * 15) + Math.random() * 10,
-            y: 20 + Math.random() * 60,
+            x: 10 + (i * 15) + pseudoRandom(i + 0.5) * 10,
+            y: 20 + pseudoRandom(i + 0.6) * 60,
             delay: i * 0.5,
-            scale: 0.8 + Math.random() * 0.5
+            scale: 0.8 + pseudoRandom(i + 0.7) * 0.5
         }));
     }, [theme.icons]);
+
+    // Generate particle positions deterministically
+    const particles = useMemo(() => {
+        return [...Array(20)].map((_, i) => ({
+            id: i,
+            left: pseudoRandom(i + 0.8) * 100,
+            delay: pseudoRandom(i + 0.9) * 5
+        }));
+    }, []);
 
     return (
         <div
@@ -149,13 +163,13 @@ const PlaceholderGenerator = ({ roomName, atmosphere = 'dark' }) => {
 
             {/* Particle Effects */}
             <div className="placeholder-generator__particles">
-                {[...Array(20)].map((_, i) => (
+                {particles.map((particle) => (
                     <div
-                        key={i}
+                        key={particle.id}
                         className="placeholder-generator__particle"
                         style={{
-                            left: `${Math.random() * 100}%`,
-                            animationDelay: `${Math.random() * 5}s`,
+                            left: `${particle.left}%`,
+                            animationDelay: `${particle.delay}s`,
                             '--particle-color': theme.accent
                         }}
                     />
